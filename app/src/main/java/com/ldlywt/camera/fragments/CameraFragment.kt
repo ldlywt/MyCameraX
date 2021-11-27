@@ -30,15 +30,16 @@ import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.Navigation
 import androidx.window.WindowManager
+import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions
 import com.ldlywt.camera.KEY_EVENT_ACTION
 import com.ldlywt.camera.KEY_EVENT_EXTRA
 import com.ldlywt.camera.MainActivity
-import com.ldlywt.camera.utils.ANIMATION_FAST_MILLIS
-import com.ldlywt.camera.utils.ANIMATION_SLOW_MILLIS
-import com.bumptech.glide.Glide
-import com.bumptech.glide.request.RequestOptions
+import com.ldlywt.camera.R
 import com.ldlywt.camera.databinding.CameraUiContainerBinding
 import com.ldlywt.camera.databinding.FragmentCameraBinding
+import com.ldlywt.camera.utils.ANIMATION_FAST_MILLIS
+import com.ldlywt.camera.utils.ANIMATION_SLOW_MILLIS
 import com.ldlywt.camera.utils.simulateClick
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -50,7 +51,6 @@ import java.util.concurrent.Executors
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import com.ldlywt.camera.R
 
 class CameraFragment : Fragment() {
 
@@ -112,7 +112,7 @@ class CameraFragment : Fragment() {
         // user could have removed them while the app was in paused state.
         if (!PermissionsFragment.hasPermissions(requireContext())) {
             Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                CameraFragmentDirections.actionCameraToPermissions()
+                    CameraFragmentDirections.actionCameraToPermissions()
             )
         }
     }
@@ -130,9 +130,9 @@ class CameraFragment : Fragment() {
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?,
     ): View {
         _fragmentCameraBinding = FragmentCameraBinding.inflate(inflater, container, false)
         return fragmentCameraBinding.root
@@ -147,9 +147,9 @@ class CameraFragment : Fragment() {
 
                 // Load thumbnail into circular button using Glide
                 Glide.with(photoViewButton)
-                    .load(uri)
-                    .apply(RequestOptions.circleCropTransform())
-                    .into(photoViewButton)
+                        .load(uri)
+                        .apply(RequestOptions.circleCropTransform())
+                        .into(photoViewButton)
             }
         }
     }
@@ -177,34 +177,16 @@ class CameraFragment : Fragment() {
         outputDirectory = MainActivity.getOutputDirectory(requireContext())
 
         // Wait for the views to be properly laid out
-        fragmentCameraBinding.viewFinder.post {
+        fragmentCameraBinding.cameraPreview.post {
 
             // Keep track of the display in which this view is attached
-            displayId = fragmentCameraBinding.viewFinder.display.displayId
+            displayId = fragmentCameraBinding.cameraPreview.display.displayId
 
             // Build UI controls
             updateCameraUi()
 
             // Set up the camera and its use cases
             setUpCamera()
-        }
-
-        fragmentCameraBinding.ivTorch.setOnClickListener {
-            when (imageCapture?.flashMode) {
-                ImageCapture.FLASH_MODE_AUTO -> {
-                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_ON
-                    fragmentCameraBinding.ivTorch.setImageResource(R.mipmap.icon_flash_always_on)
-                }
-                ImageCapture.FLASH_MODE_ON -> {
-                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_OFF
-                    fragmentCameraBinding.ivTorch.setImageResource(R.mipmap.icon_flash_always_off)
-                }
-                ImageCapture.FLASH_MODE_OFF -> {
-                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_AUTO
-                    fragmentCameraBinding.ivTorch.setImageResource(R.mipmap.icon_flash_auto)
-                }
-            }
-
         }
     }
 
@@ -260,34 +242,34 @@ class CameraFragment : Fragment() {
 //        val screenAspectRatio = AspectRatio.RATIO_16_9
         Log.d(TAG, "Preview aspect ratio: $screenAspectRatio")
 
-        val rotation = fragmentCameraBinding.viewFinder.display.rotation
+        val rotation = fragmentCameraBinding.cameraPreview.display.rotation
 
         // CameraProvider
         val cameraProvider = cameraProvider
-            ?: throw IllegalStateException("Camera initialization failed.")
+                ?: throw IllegalStateException("Camera initialization failed.")
 
         // CameraSelector
         val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
         // Preview
         preview = Preview.Builder()
-            // We request aspect ratio but no resolution
-            .setTargetAspectRatio(screenAspectRatio)
-            // Set initial target rotation
-            .setTargetRotation(rotation)
-            .build()
+                // We request aspect ratio but no resolution
+                .setTargetAspectRatio(screenAspectRatio)
+                // Set initial target rotation
+                .setTargetRotation(rotation)
+                .build()
 
         // ImageCapture
         imageCapture = ImageCapture.Builder()
-            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            .setFlashMode(ImageCapture.FLASH_MODE_AUTO)
-            // We request aspect ratio but no resolution to match preview config, but letting
-            // CameraX optimize for whatever specific resolution best fits our use cases
-            .setTargetAspectRatio(screenAspectRatio)
-            // Set initial target rotation, we will have to call this again if rotation changes
-            // during the lifecycle of this use case
-            .setTargetRotation(rotation)
-            .build()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .setFlashMode(ImageCapture.FLASH_MODE_AUTO)
+                // We request aspect ratio but no resolution to match preview config, but letting
+                // CameraX optimize for whatever specific resolution best fits our use cases
+                .setTargetAspectRatio(screenAspectRatio)
+                // Set initial target rotation, we will have to call this again if rotation changes
+                // during the lifecycle of this use case
+                .setTargetRotation(rotation)
+                .build()
 
         // Must unbind the use-cases before rebinding them
         cameraProvider.unbindAll()
@@ -298,7 +280,7 @@ class CameraFragment : Fragment() {
             camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
 
             // Attach the viewfinder's surface provider to preview use case
-            preview?.setSurfaceProvider(fragmentCameraBinding.viewFinder.surfaceProvider)
+            preview?.setSurfaceProvider(fragmentCameraBinding.cameraPreview.surfaceProvider)
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
         }
@@ -332,9 +314,9 @@ class CameraFragment : Fragment() {
         }
 
         cameraUiContainerBinding = CameraUiContainerBinding.inflate(
-            LayoutInflater.from(requireContext()),
-            fragmentCameraBinding.root,
-            true
+                LayoutInflater.from(requireContext()),
+                fragmentCameraBinding.root,
+                true
         )
 
         // In the background, load latest photo taken (if any) for gallery thumbnail
@@ -364,48 +346,48 @@ class CameraFragment : Fragment() {
 
                 // Create output options object which contains file + metadata
                 val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile)
-                    .setMetadata(metadata)
-                    .build()
+                        .setMetadata(metadata)
+                        .build()
 
                 // Setup image capture listener which is triggered after photo has been taken
                 imageCapture.takePicture(
-                    outputOptions, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
-                        override fun onError(exc: ImageCaptureException) {
-                            Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                        outputOptions, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
+                    override fun onError(exc: ImageCaptureException) {
+                        Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                    }
+
+                    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                        val savedUri: Uri = output.savedUri ?: Uri.fromFile(photoFile)
+                        Log.d(TAG, "Photo capture succeeded: $savedUri")
+
+                        // We can only change the foreground Drawable using API level 23+ API
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            // Update the gallery thumbnail with latest picture taken
+                            setGalleryThumbnail(savedUri)
                         }
 
-                        override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                            val savedUri: Uri = output.savedUri ?: Uri.fromFile(photoFile)
-                            Log.d(TAG, "Photo capture succeeded: $savedUri")
-
-                            // We can only change the foreground Drawable using API level 23+ API
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                // Update the gallery thumbnail with latest picture taken
-                                setGalleryThumbnail(savedUri)
-                            }
-
-                            // Implicit broadcasts will be ignored for devices running API level >= 24
-                            // so if you only target API level 24+ you can remove this statement
-                            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                                requireActivity().sendBroadcast(
+                        // Implicit broadcasts will be ignored for devices running API level >= 24
+                        // so if you only target API level 24+ you can remove this statement
+                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                            requireActivity().sendBroadcast(
                                     Intent(android.hardware.Camera.ACTION_NEW_PICTURE, savedUri)
-                                )
-                            }
+                            )
+                        }
 
-                            // If the folder selected is an external media directory, this is
-                            // unnecessary but otherwise other apps will not be able to access our
-                            // images unless we scan them using [MediaScannerConnection]
-                            val mimeType = MimeTypeMap.getSingleton()
-                                .getMimeTypeFromExtension(savedUri.toFile().extension)
-                            MediaScannerConnection.scanFile(
+                        // If the folder selected is an external media directory, this is
+                        // unnecessary but otherwise other apps will not be able to access our
+                        // images unless we scan them using [MediaScannerConnection]
+                        val mimeType =
+                                MimeTypeMap.getSingleton().getMimeTypeFromExtension(savedUri.toFile().extension)
+                        MediaScannerConnection.scanFile(
                                 context,
                                 arrayOf(savedUri.toFile().absolutePath),
                                 arrayOf(mimeType)
-                            ) { _, uri ->
-                                Log.d(TAG, "Image capture scanned into media store: $uri")
-                            }
+                        ) { _, uri ->
+                            Log.d(TAG, "Image capture scanned into media store: $uri")
                         }
-                    })
+                    }
+                })
 
                 // We can only change the foreground Drawable using API level 23+ API
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -414,7 +396,7 @@ class CameraFragment : Fragment() {
                     fragmentCameraBinding.root.postDelayed({
                         fragmentCameraBinding.root.foreground = ColorDrawable(Color.WHITE)
                         fragmentCameraBinding.root.postDelayed(
-                            { fragmentCameraBinding.root.foreground = null }, ANIMATION_FAST_MILLIS)
+                                { fragmentCameraBinding.root.foreground = null }, ANIMATION_FAST_MILLIS)
                     }, ANIMATION_SLOW_MILLIS)
                 }
             }
@@ -443,9 +425,27 @@ class CameraFragment : Fragment() {
             // Only navigate when the gallery has photos
             if (true == outputDirectory.listFiles()?.isNotEmpty()) {
                 Navigation.findNavController(
-                    requireActivity(), R.id.fragment_container
+                        requireActivity(), R.id.fragment_container
                 ).navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
             }
+        }
+
+        cameraUiContainerBinding?.ivTorch?.setOnClickListener {
+            when (imageCapture?.flashMode) {
+                ImageCapture.FLASH_MODE_AUTO -> {
+                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_ON
+                    cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_on)
+                }
+                ImageCapture.FLASH_MODE_ON -> {
+                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_OFF
+                    cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_off)
+                }
+                ImageCapture.FLASH_MODE_OFF -> {
+                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_AUTO
+                    cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_auto)
+                }
+            }
+
         }
     }
 
@@ -453,7 +453,7 @@ class CameraFragment : Fragment() {
     private fun updateCameraSwitchButton() {
         try {
             cameraUiContainerBinding?.cameraSwitchButton?.isEnabled =
-                hasBackCamera() && hasFrontCamera()
+                    hasBackCamera() && hasFrontCamera()
         } catch (exception: CameraInfoUnavailableException) {
             cameraUiContainerBinding?.cameraSwitchButton?.isEnabled = false
         }
@@ -472,15 +472,15 @@ class CameraFragment : Fragment() {
 
     companion object {
 
-        private const val TAG = "CameraXBasic"
-        private const val FILENAME = "yyyy-MM-dd-HH-mm-ss-SSS"
+        private const val TAG = "MyCameraX"
+        private const val FILENAME = "yyyy-MM-dd-HH-mm-ss"
         private const val PHOTO_EXTENSION = ".jpg"
         private const val RATIO_4_3_VALUE = 4.0 / 3.0
         private const val RATIO_16_9_VALUE = 16.0 / 9.0
 
         /** Helper function used to create a timestamped file */
         private fun createFile(baseFolder: File, format: String, extension: String) =
-            File(baseFolder, SimpleDateFormat(format, Locale.US)
-                .format(System.currentTimeMillis()) + extension)
+                File(baseFolder, SimpleDateFormat(format, Locale.US)
+                        .format(System.currentTimeMillis()) + extension)
     }
 }
