@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <CheckBox
+        android:id="@+id/audio_selection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center|left"
+        android:layout_marginStart="32dp"
+        android:buttonTint="@android:color/white"
+        android:text="Audio"
+        android:textColor="@android:color/white" />
+
+    <ImageButton
+        android:id="@+id/camera_button"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="bottom|left"
+        android:layout_marginStart="32dp"
+        android:layout_marginBottom="96dp"
+        android:background="@drawable/ic_switch"
+        android:scaleType="fitCenter"
+        tools:ignore="ImageContrastCheck" />
+
+    <ImageButton
+        android:id="@+id/capture_button"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="96dp"
+        android:background="@drawable/ic_start"
+        android:scaleType="fitCenter"
+        tools:ignore="ImageContrastCheck" />
+
+    <ImageButton
+        android:id="@+id/stop_button"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="bottom|right"
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="96dp"
+        android:background="@drawable/ic_stop"
+        android:scaleType="fitCenter"
+        android:visibility="invisible"
+        tools:ignore="ImageContrastCheck" />
+
+    <TextView
+        android:id="@+id/capture_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|left"
+        android:layout_marginStart="48dp"
+        android:layout_marginBottom="48dp"
+        android:lines="2"
+        android:maxLines="2"
+        android:text="CaptureStatus"
+        android:textColor="#ff0" />
+
+</FrameLayout>

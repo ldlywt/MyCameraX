@@ -13,4 +13,10 @@
     <string name="delete_button_alt">Delete</string>
     <string name="delete_dialog">Delete current photo?</string>
     <string name="delete_title">Confirm</string>
+    <string name="stop">Stop</string>
+    <string name="pause">Pause</string>
+    <string name="Resume">Resume</string>
+    <string name="Start">Start</string>
+    <string name="Finalize">Finalize</string>
+    <string name="Idle">Idle</string>
 </resources>

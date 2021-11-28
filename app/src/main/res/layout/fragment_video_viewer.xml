@@ -1,0 +1,20 @@
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/view_viewer_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <VideoView
+        android:id="@+id/video_viewer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fitsSystemWindows="true" />
+
+    <TextView
+        android:id="@+id/video_viewer_tips"
+        android:layout_width="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_height="wrap_content"
+        android:textColor="#ff0" />
+</FrameLayout>

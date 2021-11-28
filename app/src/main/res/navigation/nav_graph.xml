@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<navigation
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_graph"
     app:startDestination="@id/permissions_fragment">
 
@@ -36,12 +36,43 @@
     </fragment>
 
     <fragment
+        android:id="@+id/camera_video_fragment"
+        android:name="com.ldlywt.camera.fragments.video.CameraVideoFragment"
+        android:label="CameraVideo" >
+
+        <action
+            android:id="@+id/action_camera_to_permissions"
+            app:destination="@id/permissions_fragment"
+            app:popUpTo="@id/camera_video_fragment"
+            app:popUpToInclusive="true"/>
+        <action
+            android:id="@+id/action_camera_fragment_to_video_viewer"
+            app:destination="@id/video_viewer" />
+
+    </fragment>
+
+    <fragment
         android:id="@+id/gallery_fragment"
         android:name="com.ldlywt.camera.fragments.GalleryFragment"
         android:label="GalleryFragment" >
         <argument
             android:name="root_directory"
             app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/video_viewer"
+        android:name="com.ldlywt.camera.fragments.video.VideoViewerFragment"
+        android:label="fragment_video_viewer"
+        tools:layout="@layout/fragment_video_viewer" >
+
+        <argument
+            android:name="uri"
+            app:argType="android.net.Uri" />
+
+        <action
+            android:id="@+id/action_video_viewer2_to_camera_fragment"
+            app:destination="@id/camera_video_fragment" />
     </fragment>
 
 </navigation>
