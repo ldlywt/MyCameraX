@@ -36,7 +36,6 @@ class PermissionsFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // add the storage access permission request for Android 9 and below.
         if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
             val permissionList = PERMISSIONS_REQUIRED.toMutableList()
             permissionList.add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
@@ -50,19 +49,6 @@ class PermissionsFragment : Fragment() {
             activityResultLauncher.launch(PERMISSIONS_REQUIRED)
         }
     }
-
-//    override fun onRequestPermissionsResult(
-//            requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-//        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-//        if (requestCode == PERMISSIONS_REQUEST_CODE) {
-//            if (PackageManager.PERMISSION_GRANTED == grantResults.firstOrNull()) {
-//                Toast.makeText(context, "Permission request granted", Toast.LENGTH_LONG).show()
-//                navigateToCamera()
-//            } else {
-//                Toast.makeText(context, "Permission request denied", Toast.LENGTH_LONG).show()
-//            }
-//        }
-//    }
 
     private fun navigateToCamera() {
         lifecycleScope.launchWhenStarted {
