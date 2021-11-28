@@ -26,8 +26,6 @@ import com.bumptech.glide.Glide
 import com.ldlywt.camera.R
 import java.io.File
 
-
-/** Fragment used for each individual page showing a photo inside of [GalleryFragment] */
 class PhotoFragment internal constructor() : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
