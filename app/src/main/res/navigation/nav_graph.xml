@@ -8,7 +8,7 @@
     <fragment
         android:id="@+id/permissions_fragment"
         android:name="com.ldlywt.camera.fragments.PermissionsFragment"
-        android:label="PermissionsFragment" >
+        android:label="PermissionsFragment">
 
         <action
             android:id="@+id/action_permissions_to_camera"
@@ -20,8 +20,9 @@
 
     <fragment
         android:id="@+id/camera_fragment"
-        android:name="com.ldlywt.camera.fragments.CameraFragment"
-        android:label="CameraFragment" >
+        android:name="com.ldlywt.camera.fragments.photo.CameraPhotoFragment"
+        android:label="CameraFragment"
+        tools:layout="@layout/camera_ui_container">
 
         <action
             android:id="@+id/action_camera_to_gallery"
@@ -31,20 +32,24 @@
             android:id="@+id/action_camera_to_permissions"
             app:destination="@id/permissions_fragment"
             app:popUpTo="@id/camera_fragment"
-            app:popUpToInclusive="true"/>
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_camera_fragment_to_camera_video_fragment"
+            app:destination="@id/camera_video_fragment" />
 
     </fragment>
 
     <fragment
         android:id="@+id/camera_video_fragment"
         android:name="com.ldlywt.camera.fragments.video.CameraVideoFragment"
-        android:label="CameraVideo" >
+        android:label="CameraVideo"
+        tools:layout="@layout/fragment_camera_video">
 
         <action
             android:id="@+id/action_camera_to_permissions"
             app:destination="@id/permissions_fragment"
             app:popUpTo="@id/camera_video_fragment"
-            app:popUpToInclusive="true"/>
+            app:popUpToInclusive="true" />
         <action
             android:id="@+id/action_camera_fragment_to_video_viewer"
             app:destination="@id/video_viewer" />
@@ -53,8 +58,9 @@
 
     <fragment
         android:id="@+id/gallery_fragment"
-        android:name="com.ldlywt.camera.fragments.GalleryFragment"
-        android:label="GalleryFragment" >
+        android:name="com.ldlywt.camera.fragments.photo.GalleryFragment"
+        android:label="GalleryFragment"
+        tools:layout="@layout/fragment_gallery">
         <argument
             android:name="root_directory"
             app:argType="string" />
@@ -64,15 +70,12 @@
         android:id="@+id/video_viewer"
         android:name="com.ldlywt.camera.fragments.video.VideoViewerFragment"
         android:label="fragment_video_viewer"
-        tools:layout="@layout/fragment_video_viewer" >
+        tools:layout="@layout/fragment_video_viewer">
 
         <argument
             android:name="uri"
             app:argType="android.net.Uri" />
 
-        <action
-            android:id="@+id/action_video_viewer2_to_camera_fragment"
-            app:destination="@id/camera_video_fragment" />
     </fragment>
 
 </navigation>

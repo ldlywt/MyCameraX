@@ -17,7 +17,7 @@
         android:maxSdkVersion="28" />
 
     <application
-        android:name="com.ldlywt.camera.MainApplication"
+        android:name="com.ldlywt.camera.App"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:allowBackup="true"

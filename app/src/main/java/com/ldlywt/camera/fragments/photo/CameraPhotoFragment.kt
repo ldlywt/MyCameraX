@@ -1,4 +1,4 @@
-package com.ldlywt.camera.fragments
+package com.ldlywt.camera.fragments.photo
 
 import android.annotation.SuppressLint
 import android.content.BroadcastReceiver
@@ -29,6 +29,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import androidx.window.WindowManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -38,6 +39,7 @@ import com.ldlywt.camera.MainActivity
 import com.ldlywt.camera.R
 import com.ldlywt.camera.databinding.CameraUiContainerBinding
 import com.ldlywt.camera.databinding.FragmentCameraBinding
+import com.ldlywt.camera.fragments.PermissionsFragment
 import com.ldlywt.camera.utils.ANIMATION_FAST_MILLIS
 import com.ldlywt.camera.utils.ANIMATION_SLOW_MILLIS
 import com.ldlywt.camera.utils.simulateClick
@@ -52,7 +54,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class CameraFragment : Fragment() {
+class CameraPhotoFragment : Fragment() {
 
     private var _fragmentCameraBinding: FragmentCameraBinding? = null
 
@@ -99,7 +101,7 @@ class CameraFragment : Fragment() {
         override fun onDisplayAdded(displayId: Int) = Unit
         override fun onDisplayRemoved(displayId: Int) = Unit
         override fun onDisplayChanged(displayId: Int) = view?.let { view ->
-            if (displayId == this@CameraFragment.displayId) {
+            if (displayId == this@CameraPhotoFragment.displayId) {
                 Log.d(TAG, "Rotation changed: ${view.display.rotation}")
                 imageCapture?.targetRotation = view.display.rotation
             }
@@ -108,11 +110,9 @@ class CameraFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Make sure that all permissions are still present, since the
-        // user could have removed them while the app was in paused state.
         if (!PermissionsFragment.hasPermissions(requireContext())) {
             Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                    CameraFragmentDirections.actionCameraToPermissions()
+                    CameraPhotoFragmentDirections.actionCameraToPermissions()
             )
         }
     }
@@ -424,9 +424,8 @@ class CameraFragment : Fragment() {
         cameraUiContainerBinding?.photoViewButton?.setOnClickListener {
             // Only navigate when the gallery has photos
             if (true == outputDirectory.listFiles()?.isNotEmpty()) {
-                Navigation.findNavController(
-                        requireActivity(), R.id.fragment_container
-                ).navigate(CameraFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+                Navigation.findNavController(requireActivity(), R.id.fragment_container)
+                        .navigate(CameraPhotoFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
             }
         }
 
@@ -445,7 +444,10 @@ class CameraFragment : Fragment() {
                     cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_auto)
                 }
             }
-
+        }
+        cameraUiContainerBinding?.ivCameraVideo?.setOnClickListener {
+            Navigation.findNavController(requireActivity(), R.id.fragment_container)
+                    .navigate(CameraPhotoFragmentDirections.actionCameraFragmentToCameraVideoFragment())
         }
     }
 

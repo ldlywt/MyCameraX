@@ -1,4 +1,4 @@
-package com.ldlywt.camera.fragments
+package com.ldlywt.camera.fragments.photo
 
 import android.content.Intent
 import android.media.MediaScannerConnection

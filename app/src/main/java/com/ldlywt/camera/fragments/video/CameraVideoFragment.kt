@@ -14,7 +14,6 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
-import androidx.camera.video.Recorder
 import androidx.concurrent.futures.await
 import androidx.core.content.ContextCompat
 import androidx.core.util.Consumer
@@ -25,7 +24,6 @@ import androidx.navigation.NavController
 import androidx.navigation.Navigation
 import com.ldlywt.camera.R
 import com.ldlywt.camera.databinding.FragmentCameraVideoBinding
-import com.ldlywt.camera.fragments.CameraFragmentDirections
 import com.ldlywt.camera.fragments.PermissionsFragment
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
@@ -70,26 +68,26 @@ class CameraVideoFragment : Fragment() {
     private suspend fun bindCaptureUsecase() {
         val cameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
         val cameraSelector =
-            if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
+                if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
         val preview = Preview.Builder().setTargetAspectRatio(DEFAULT_ASPECT_RATIO)
-            .build().apply {
-                setSurfaceProvider(fragmentCameraBinding.previewView.surfaceProvider)
-            }
+                .build().apply {
+                    setSurfaceProvider(fragmentCameraBinding.previewView.surfaceProvider)
+                }
         // build a recorder, which can:
         //   - record video/audio to MediaStore(only shown here), File, ParcelFileDescriptor
         //   - be used create recording(s) (the recording performs recording)
         val recorder = Recorder.Builder()
-            .setQualitySelector(QualitySelector.of(QualitySelector.QUALITY_SD))
-            .build()
+                .setQualitySelector(QualitySelector.of(QualitySelector.QUALITY_SD))
+                .build()
         videoCapture = VideoCapture.withOutput(recorder)
 
         try {
             cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(
-                viewLifecycleOwner,
-                cameraSelector,
-                videoCapture,
-                preview
+                    viewLifecycleOwner,
+                    cameraSelector,
+                    videoCapture,
+                    preview
             )
         } catch (exc: Exception) {
             // we are on main thread, let's reset the controls on the UI.
@@ -111,20 +109,20 @@ class CameraVideoFragment : Fragment() {
     @SuppressLint("MissingPermission")
     private fun startRecording() {
         val name =
-            "CameraX-recording-" + SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis()) + ".mp4"
+                "CameraX-recording-" + SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis()) + ".mp4"
         val contentValues = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, name)
         }
         val mediaStoreOutput = MediaStoreOutputOptions.Builder(
-            requireActivity().contentResolver,
-            MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
-            .setContentValues(contentValues)
-            .build()
+                requireActivity().contentResolver,
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+                .setContentValues(contentValues)
+                .build()
 
         activeRecording = videoCapture.output.prepareRecording(requireActivity(), mediaStoreOutput)
-            .withEventListener(mainThreadExecutor, captureListener)
-            .apply { if (audioEnabled) withAudioEnabled() }
-            .start()
+                .withEventListener(mainThreadExecutor, captureListener)
+                .apply { if (audioEnabled) withAudioEnabled() }
+                .start()
 
         Log.i(TAG, "Recording started")
     }
@@ -154,8 +152,8 @@ class CameraVideoFragment : Fragment() {
 
                 provider.unbindAll()
                 for (camSelector in arrayOf(
-                    CameraSelector.DEFAULT_BACK_CAMERA,
-                    CameraSelector.DEFAULT_FRONT_CAMERA
+                        CameraSelector.DEFAULT_BACK_CAMERA,
+                        CameraSelector.DEFAULT_FRONT_CAMERA
                 )) {
                     try {
                         // just want to get the camera.cameraInfo to query capabilities
@@ -231,8 +229,8 @@ class CameraVideoFragment : Fragment() {
                         }
                         else -> {
                             Log.e(
-                                TAG,
-                                "Unknown State ($recordingState) when Capture Button is pressed "
+                                    TAG,
+                                    "Unknown State ($recordingState) when Capture Button is pressed "
                             )
                         }
                     }
@@ -262,6 +260,13 @@ class CameraVideoFragment : Fragment() {
         }
 
         fragmentCameraBinding.captureStatus.text = getString(R.string.Idle)
+
+        fragmentCameraBinding.ivCamera.setOnClickListener {
+//            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
+//                    CameraVideoFragmentDirections.actionCameraVideoFragmentToCameraFragment()
+//            )
+            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
+        }
     }
 
     /**
@@ -318,9 +323,9 @@ class CameraVideoFragment : Fragment() {
      */
     private fun enableUI(enable: Boolean) {
         arrayOf(fragmentCameraBinding.cameraButton,
-            fragmentCameraBinding.captureButton,
-            fragmentCameraBinding.stopButton,
-            fragmentCameraBinding.audioSelection).forEach {
+                fragmentCameraBinding.captureButton,
+                fragmentCameraBinding.stopButton,
+                fragmentCameraBinding.audioSelection).forEach {
             it.isEnabled = enable
         }
     }
@@ -389,23 +394,24 @@ class CameraVideoFragment : Fragment() {
 
         lifecycleScope.launch {
             navController.navigate(
-                CameraVideoFragmentDirections.actionCameraFragmentToVideoViewer(
-                    event.outputResults.outputUri
-                )
+                    CameraVideoFragmentDirections.actionCameraFragmentToVideoViewer(
+                            event.outputResults.outputUri
+                    )
             )
         }
     }
 
     // System function implementations
     override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?,
     ): View {
         _fragmentCameraBinding = FragmentCameraVideoBinding.inflate(inflater, container, false)
         initCameraFragment()
         return fragmentCameraBinding.root
     }
+
     override fun onResume() {
         super.onResume()
         // Make sure that all permissions are still present, since the
