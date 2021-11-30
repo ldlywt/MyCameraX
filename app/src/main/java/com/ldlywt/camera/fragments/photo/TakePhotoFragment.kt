@@ -29,7 +29,6 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.Navigation
-import androidx.navigation.fragment.findNavController
 import androidx.window.WindowManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -54,7 +53,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-class CameraPhotoFragment : Fragment() {
+class TakePhotoFragment : Fragment() {
 
     private var _fragmentCameraBinding: FragmentCameraBinding? = null
 
@@ -101,7 +100,7 @@ class CameraPhotoFragment : Fragment() {
         override fun onDisplayAdded(displayId: Int) = Unit
         override fun onDisplayRemoved(displayId: Int) = Unit
         override fun onDisplayChanged(displayId: Int) = view?.let { view ->
-            if (displayId == this@CameraPhotoFragment.displayId) {
+            if (displayId == this@TakePhotoFragment.displayId) {
                 Log.d(TAG, "Rotation changed: ${view.display.rotation}")
                 imageCapture?.targetRotation = view.display.rotation
             }
@@ -112,7 +111,7 @@ class CameraPhotoFragment : Fragment() {
         super.onResume()
         if (!PermissionsFragment.hasPermissions(requireContext())) {
             Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                    CameraPhotoFragmentDirections.actionCameraToPermissions()
+                    TakePhotoFragmentDirections.actionCameraToPermissions()
             )
         }
     }
@@ -425,7 +424,7 @@ class CameraPhotoFragment : Fragment() {
             // Only navigate when the gallery has photos
             if (true == outputDirectory.listFiles()?.isNotEmpty()) {
                 Navigation.findNavController(requireActivity(), R.id.fragment_container)
-                        .navigate(CameraPhotoFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
+                        .navigate(TakePhotoFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
             }
         }
 
@@ -447,7 +446,7 @@ class CameraPhotoFragment : Fragment() {
         }
         cameraUiContainerBinding?.ivCameraVideo?.setOnClickListener {
             Navigation.findNavController(requireActivity(), R.id.fragment_container)
-                    .navigate(CameraPhotoFragmentDirections.actionCameraFragmentToCameraVideoFragment())
+                    .navigate(TakePhotoFragmentDirections.actionCameraFragmentToCameraVideoFragment())
         }
     }
 

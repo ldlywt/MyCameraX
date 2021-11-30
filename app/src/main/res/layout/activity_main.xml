@@ -9,5 +9,5 @@
     android:layout_height="match_parent"
     android:keepScreenOn="true"
     app:defaultNavHost="true"
-    app:navGraph="@navigation/nav_graph"
+    app:navGraph="@navigation/nav_camera"
     tools:context="com.ldlywt.camera.MainActivity"/>

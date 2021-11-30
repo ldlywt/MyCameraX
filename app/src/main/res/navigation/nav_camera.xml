@@ -12,15 +12,15 @@
 
         <action
             android:id="@+id/action_permissions_to_camera"
-            app:destination="@id/camera_fragment"
+            app:destination="@id/take_photo_fragment"
             app:popUpTo="@id/permissions_fragment"
             app:popUpToInclusive="true" />
 
     </fragment>
 
     <fragment
-        android:id="@+id/camera_fragment"
-        android:name="com.ldlywt.camera.fragments.photo.CameraPhotoFragment"
+        android:id="@+id/take_photo_fragment"
+        android:name="com.ldlywt.camera.fragments.photo.TakePhotoFragment"
         android:label="CameraFragment"
         tools:layout="@layout/camera_ui_container">
 
@@ -31,7 +31,7 @@
         <action
             android:id="@+id/action_camera_to_permissions"
             app:destination="@id/permissions_fragment"
-            app:popUpTo="@id/camera_fragment"
+            app:popUpTo="@id/take_photo_fragment"
             app:popUpToInclusive="true" />
         <action
             android:id="@+id/action_camera_fragment_to_camera_video_fragment"
