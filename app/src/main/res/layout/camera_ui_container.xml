@@ -44,6 +44,16 @@
         app:layout_constraintTop_toTopOf="@id/iv_torch"
         app:srcCompat="@drawable/ic_switch" />
 
+    <com.ldlywt.camera.widget.CircleProgressButtonView
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="80dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:progressWidth="8dp"
+        app:maxTime="15" />
+
     <ImageButton
         android:id="@+id/camera_capture_button"
         android:layout_width="@dimen/round_button_large"
