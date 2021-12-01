@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
@@ -29,7 +30,6 @@ public class CircleProgressButtonView extends View {
     private float mSmallRadius;
     private long mStartTime;
     private long mEndTime;
-    private Context mContext;
     private boolean isRecording;//录制状态
     private boolean isMaxTime;//达到最大录制时间
     private float mCurrentProgress;//当前进度
@@ -60,13 +60,19 @@ public class CircleProgressButtonView extends View {
     }
 
     private void init(Context context, AttributeSet attrs) {
-        this.mContext = context;
-        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CircleButtonView);
-        mMinTime = a.getInt(R.styleable.CircleButtonView_minTime, 0);
-        mTime = a.getInt(R.styleable.CircleButtonView_maxTime, 10);
-        mProgressW = a.getDimension(R.styleable.CircleButtonView_progressWidth, 12f);
-        mProgressColor = a.getColor(R.styleable.CircleButtonView_progressColor, Color.parseColor("#6ABF66"));
+        TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.CircleProgressButtonView);
+        mMinTime = a.getInt(R.styleable.CircleProgressButtonView_minTime, 0);
+        mTime = a.getInt(R.styleable.CircleProgressButtonView_maxTime, 10);
+        mProgressW = a.getDimension(R.styleable.CircleProgressButtonView_progressWidth, 12f);
+        mProgressColor = a.getColor(R.styleable.CircleProgressButtonView_progressColor, Color.parseColor("#6ABF66"));
         a.recycle();
+        initPaint();
+
+        mProgressAni = ValueAnimator.ofFloat(0, 360f);
+        mProgressAni.setDuration(mTime * 1000);
+    }
+
+    private void initPaint() {
         //初始画笔抗锯齿、颜色
         mBigCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mBigCirclePaint.setColor(Color.parseColor("#DDDDDD"));
@@ -76,9 +82,6 @@ public class CircleProgressButtonView extends View {
 
         mProgressCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         mProgressCirclePaint.setColor(mProgressColor);
-
-        mProgressAni = ValueAnimator.ofFloat(0, 360f);
-        mProgressAni.setDuration(mTime * 1000);
     }
 
     @Override
@@ -98,16 +101,9 @@ public class CircleProgressButtonView extends View {
         //绘制内圆
         canvas.drawCircle(mWidth / 2, mHeight / 2, mSmallRadius, mSmallCirclePaint);
         //录制的过程中绘制进度条
-        if (isRecording) {
-            drawProgress(canvas);
-        }
+        if (isRecording) drawProgress(canvas);
     }
 
-    /**
-     * 绘制圆形进度
-     *
-     * @param canvas
-     */
     private void drawProgress(Canvas canvas) {
         mProgressCirclePaint.setStrokeWidth(mProgressW);
         mProgressCirclePaint.setStyle(Paint.Style.STROKE);
@@ -117,7 +113,7 @@ public class CircleProgressButtonView extends View {
         canvas.drawArc(oval, -90, mCurrentProgress, false, mProgressCirclePaint);
     }
 
-    private Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
@@ -169,28 +165,21 @@ public class CircleProgressButtonView extends View {
                 break;
         }
         return true;
-
     }
 
     private void startAnimation(float bigStart, float bigEnd, float smallStart, float smallEnd) {
         ValueAnimator bigObjAni = ValueAnimator.ofFloat(bigStart, bigEnd);
         bigObjAni.setDuration(150);
-        bigObjAni.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                mBigRadius = (float) animation.getAnimatedValue();
-                invalidate();
-            }
+        bigObjAni.addUpdateListener(animation -> {
+            mBigRadius = (float) animation.getAnimatedValue();
+            invalidate();
         });
 
         ValueAnimator smallObjAni = ValueAnimator.ofFloat(smallStart, smallEnd);
         smallObjAni.setDuration(150);
-        smallObjAni.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                mSmallRadius = (float) animation.getAnimatedValue();
-                invalidate();
-            }
+        smallObjAni.addUpdateListener(animation -> {
+            mSmallRadius = (float) animation.getAnimatedValue();
+            invalidate();
         });
 
         bigObjAni.start();
@@ -215,34 +204,25 @@ public class CircleProgressButtonView extends View {
 
             @Override
             public void onAnimationCancel(Animator animation) {
-
             }
 
             @Override
             public void onAnimationRepeat(Animator animation) {
-
             }
         });
 
     }
 
-    /**
-     * 圆形进度变化动画
-     */
     private void startProgressAnimation() {
         mProgressAni.start();
-        mProgressAni.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                mCurrentProgress = (float) animation.getAnimatedValue();
-                invalidate();
-            }
+        mProgressAni.addUpdateListener(animation -> {
+            mCurrentProgress = (float) animation.getAnimatedValue();
+            invalidate();
         });
 
         mProgressAni.addListener(new Animator.AnimatorListener() {
             @Override
             public void onAnimationStart(Animator animation) {
-
             }
 
             @Override
@@ -262,19 +242,14 @@ public class CircleProgressButtonView extends View {
 
             @Override
             public void onAnimationCancel(Animator animation) {
-
             }
 
             @Override
             public void onAnimationRepeat(Animator animation) {
-
             }
         });
     }
 
-    /**
-     * 长按监听器
-     */
     public interface OnLongClickListener {
         void onLongClick();
 
@@ -291,9 +266,6 @@ public class CircleProgressButtonView extends View {
         this.onLongClickListener = onLongClickListener;
     }
 
-    /**
-     * 点击监听器
-     */
     public interface OnClickListener {
         void onClick();
     }
