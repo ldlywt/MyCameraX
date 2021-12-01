@@ -13,7 +13,7 @@
 
     <ImageButton
         android:id="@+id/iv_camera"
-        android:layout_width="40dp"
+        android:layout_width="wrap_content"
         android:layout_height="40dp"
         android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
@@ -44,27 +44,16 @@
         android:text="Audio"
         android:textColor="@android:color/white" />
 
-    <ImageButton
-        android:id="@+id/capture_button"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
+    <com.ldlywt.camera.widget.CircleProgressButtonView
+        android:id="@+id/btn_record"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
         android:layout_gravity="bottom|center"
-        android:layout_marginBottom="96dp"
-        android:background="@drawable/ic_start"
-        android:scaleType="fitCenter"
-        tools:ignore="ImageContrastCheck" />
-
-    <ImageButton
-        android:id="@+id/stop_button"
-        android:layout_width="96dp"
-        android:layout_height="96dp"
-        android:layout_gravity="bottom|right"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="96dp"
-        android:background="@drawable/ic_stop"
-        android:scaleType="fitCenter"
-        android:visibility="invisible"
-        tools:ignore="ImageContrastCheck" />
+        android:layout_marginBottom="80dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:maxTime="15"
+        app:progressWidth="8dp" />
 
     <TextView
         android:id="@+id/capture_status"

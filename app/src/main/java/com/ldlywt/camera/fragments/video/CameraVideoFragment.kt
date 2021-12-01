@@ -25,6 +25,7 @@ import androidx.navigation.Navigation
 import com.ldlywt.camera.R
 import com.ldlywt.camera.databinding.FragmentCameraVideoBinding
 import com.ldlywt.camera.fragments.PermissionsFragment
+import com.ldlywt.camera.widget.CircleProgressButtonView
 import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -203,23 +204,21 @@ class CameraVideoFragment : Fragment() {
             isEnabled = false
         }
 
-        // audioEnabled by default is disabled.
         fragmentCameraBinding.audioSelection.isChecked = audioEnabled
         fragmentCameraBinding.audioSelection.setOnClickListener {
             audioEnabled = fragmentCameraBinding.audioSelection.isChecked
         }
 
-        // React to user touching the capture button
-        fragmentCameraBinding.captureButton.apply {
-            setOnClickListener {
+        fragmentCameraBinding.btnRecord.setOnLongClickListener(object : CircleProgressButtonView.OnLongClickListener {
+            override fun onLongClick() {
                 if (!this@CameraVideoFragment::recordingState.isInitialized || recordingState is VideoRecordEvent.Finalize) {
-                    enableUI(false)  // Our eventListener will turn on the Recording UI.
+                    enableUI(false)
                     startRecording()
                 } else {
+                    Log.i(TAG, "recordingState: $recordingState")
                     when (recordingState) {
                         is VideoRecordEvent.Start -> {
                             activeRecording?.pause()
-                            fragmentCameraBinding.stopButton.visibility = View.VISIBLE
                         }
                         is VideoRecordEvent.Pause -> {
                             activeRecording?.resume()
@@ -228,43 +227,30 @@ class CameraVideoFragment : Fragment() {
                             activeRecording?.pause()
                         }
                         else -> {
-                            Log.e(
-                                    TAG,
-                                    "Unknown State ($recordingState) when Capture Button is pressed "
-                            )
+                            Log.e(TAG, "Unknown State ($recordingState) when Capture Button is pressed ")
                         }
                     }
                 }
             }
-            isEnabled = false
-        }
 
-        fragmentCameraBinding.stopButton.apply {
-            setOnClickListener {
-                // stopping: hide it after getting a click before we go to viewing fragment
-                fragmentCameraBinding.stopButton.visibility = View.INVISIBLE
+            override fun onNoMinRecord(currentTime: Int) = Unit
+
+            override fun onRecordFinishedListener() {
                 if (activeRecording == null || recordingState is VideoRecordEvent.Finalize) {
-                    return@setOnClickListener
+                    return
                 }
-
                 val recording = activeRecording
                 if (recording != null) {
                     recording.stop()
                     activeRecording = null
                 }
-                fragmentCameraBinding.captureButton.setImageResource(R.drawable.ic_start)
             }
-            // ensure the stop button is initialized disabled & invisible
-            visibility = View.INVISIBLE
-            isEnabled = false
-        }
+
+        })
 
         fragmentCameraBinding.captureStatus.text = getString(R.string.Idle)
 
         fragmentCameraBinding.ivCamera.setOnClickListener {
-//            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-//                    CameraVideoFragmentDirections.actionCameraVideoFragmentToCameraFragment()
-//            )
             Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
         }
     }
@@ -282,6 +268,7 @@ class CameraVideoFragment : Fragment() {
     private fun updateUI(event: VideoRecordEvent) {
         val state = if (event is VideoRecordEvent.Status) recordingState.getName()
         else event.getName()
+        Log.i(TAG, "event.getName(): ${event.getName()}")
         when (event) {
             is VideoRecordEvent.Status -> {
                 // placeholder: we update the UI with new status after this when() block,
@@ -294,10 +281,8 @@ class CameraVideoFragment : Fragment() {
                 showUI(UiState.FINALIZED, event.getName())
             }
             is VideoRecordEvent.Pause -> {
-                fragmentCameraBinding.captureButton.setImageResource(R.drawable.ic_resume)
             }
             is VideoRecordEvent.Resume -> {
-                fragmentCameraBinding.captureButton.setImageResource(R.drawable.ic_pause)
             }
             else -> {
                 Log.e(TAG, "Error(Unknown Event) from Recorder")
@@ -323,8 +308,6 @@ class CameraVideoFragment : Fragment() {
      */
     private fun enableUI(enable: Boolean) {
         arrayOf(fragmentCameraBinding.cameraButton,
-                fragmentCameraBinding.captureButton,
-                fragmentCameraBinding.stopButton,
                 fragmentCameraBinding.audioSelection).forEach {
             it.isEnabled = enable
         }
@@ -336,27 +319,19 @@ class CameraVideoFragment : Fragment() {
      *  - otherwise: show all except the stop button
      */
     private fun showUI(state: UiState, status: String = "idle") {
+        Log.i(TAG, "showUI: UiState: $status")
         fragmentCameraBinding.let {
             when (state) {
                 UiState.IDLE -> {
-                    it.captureButton.setImageResource(R.drawable.ic_start)
-                    it.stopButton.visibility = View.INVISIBLE
-
                     it.cameraButton.visibility = View.VISIBLE
                     it.audioSelection.visibility = View.VISIBLE
                 }
                 UiState.RECORDING -> {
                     it.cameraButton.visibility = View.INVISIBLE
                     it.audioSelection.visibility = View.INVISIBLE
-
-                    it.captureButton.setImageResource(R.drawable.ic_pause)
-                    it.captureButton.isEnabled = true
-                    it.stopButton.visibility = View.VISIBLE
-                    it.stopButton.isEnabled = true
+                    it.ivCamera.visibility = View.INVISIBLE
                 }
                 UiState.FINALIZED -> {
-                    it.captureButton.setImageResource(R.drawable.ic_start)
-                    it.stopButton.visibility = View.INVISIBLE
                 }
                 else -> {
                     val errorMsg = "Error: showUI($state) is not supported"

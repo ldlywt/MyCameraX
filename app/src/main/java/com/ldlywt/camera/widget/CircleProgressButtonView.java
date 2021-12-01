@@ -34,8 +34,8 @@ public class CircleProgressButtonView extends View {
     private boolean isMaxTime;//达到最大录制时间
     private float mCurrentProgress;//当前进度
 
-    private long mLongClickTime = 500;//长按最短时间(毫秒)，
-    private int mTime = 5;//录制最大时间s
+    private final long mLongClickTime = 500;//长按最短时间(毫秒)，
+    private int mTime = 10;//录制最大时间s
     private int mMinTime = 3;//录制最短时间
     private int mProgressColor;//进度条颜色
     private float mProgressW = 18f;//圆环宽度
