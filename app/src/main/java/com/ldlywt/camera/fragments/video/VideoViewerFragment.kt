@@ -1,42 +1,19 @@
-/*
- * Copyright 2021 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.ldlywt.camera.fragments.video
 
 import android.os.Bundle
 import android.provider.MediaStore
 import android.provider.OpenableColumns
 import android.util.Log
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.MediaController
 import androidx.navigation.fragment.navArgs
-import android.util.TypedValue
 import com.ldlywt.camera.databinding.FragmentVideoViewerBinding
 
-/**
- * VideoViewerFragment:
- *      Accept MediaStore URI and play it with VideoView (Also displaying file size and location)
- *      Note: Might be good to retrieve the encoded file mime type (not based on file type)
- */
 class VideoViewerFragment : androidx.fragment.app.Fragment() {
     private val args: VideoViewerFragmentArgs by navArgs()
-
-    // This property is only valid between onCreateView and onDestroyView.
     private var _binding: FragmentVideoViewerBinding? = null
     private val binding get() = _binding!!
 
@@ -46,7 +23,6 @@ class VideoViewerFragment : androidx.fragment.app.Fragment() {
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentVideoViewerBinding.inflate(inflater, container, false)
-        // UI adjustment + hacking to display VideoView use tips / capture result
         val tv = TypedValue()
         if (requireActivity().theme.resolveAttribute(android.R.attr.actionBarSize, tv, true)) {
             val actionBarHeight = TypedValue.complexToDimensionPixelSize(tv.data, resources.displayMetrics)
@@ -65,13 +41,6 @@ class VideoViewerFragment : androidx.fragment.app.Fragment() {
         super.onDestroyView()
     }
 
-    /**
-     * A helper function to play the recorded video. Note that VideoView/MediaController auto-hides
-     * the play control menus, touch on the video area would bring it back for 3 second.
-     * This functionality not really related to capture, provided here for convenient purpose to view:
-     *   - the captured video
-     *   - the file size and location
-     */
     private fun showVideo() {
         if (args.uri.scheme.toString().compareTo("content") == 0) {
             val resolver = requireContext().contentResolver

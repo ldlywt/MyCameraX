@@ -37,7 +37,7 @@ class GalleryFragment internal constructor() : Fragment() {
 
     inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
         override fun getCount(): Int = mediaList.size
-        override fun getItem(position: Int): Fragment = PhotoFragment.create(mediaList[position])
+        override fun getItem(position: Int): Fragment = PhotoViewerFragment.create(mediaList[position])
         override fun getItemPosition(obj: Any): Int = POSITION_NONE
     }
 
@@ -49,7 +49,7 @@ class GalleryFragment internal constructor() : Fragment() {
         val rootDirectory = File(args.rootDirectory)
 
         mediaList = rootDirectory.listFiles { file ->
-            EXTENSION_WHITELIST.contains(file.extension.toUpperCase(Locale.ROOT))
+            EXTENSION_WHITELIST.contains(file.extension.uppercase(Locale.ROOT))
         }?.sortedDescending()?.toMutableList() ?: mutableListOf()
     }
 
@@ -118,7 +118,6 @@ class GalleryFragment internal constructor() : Fragment() {
                             if (mediaList.isEmpty()) {
                                 Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
                             }
-
                         }
 
                         .setNegativeButton(android.R.string.no, null)

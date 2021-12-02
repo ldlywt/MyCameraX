@@ -10,7 +10,7 @@ import com.bumptech.glide.Glide
 import com.ldlywt.camera.R
 import java.io.File
 
-class PhotoFragment internal constructor() : Fragment() {
+class PhotoViewerFragment internal constructor() : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
                               savedInstanceState: Bundle?) = ImageView(context)
@@ -25,7 +25,7 @@ class PhotoFragment internal constructor() : Fragment() {
     companion object {
         private const val FILE_NAME_KEY = "file_name"
 
-        fun create(image: File) = PhotoFragment().apply {
+        fun create(image: File) = PhotoViewerFragment().apply {
             arguments = Bundle().apply {
                 putString(FILE_NAME_KEY, image.absolutePath)
             }

@@ -20,8 +20,8 @@ import androidx.core.util.Consumer
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.whenCreated
-import androidx.navigation.NavController
 import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import com.ldlywt.camera.R
 import com.ldlywt.camera.databinding.FragmentCameraVideoBinding
 import com.ldlywt.camera.fragments.PermissionsFragment
@@ -32,15 +32,8 @@ import java.util.*
 
 class CameraVideoFragment : Fragment() {
 
-    // UI with ViewBinding
     private var _fragmentCameraBinding: FragmentCameraVideoBinding? = null
     private val fragmentCameraBinding get() = _fragmentCameraBinding!!
-
-    /** Host's navigation controller */
-    private val navController: NavController by lazy {
-        Navigation.findNavController(requireActivity(), R.id.fragment_container)
-    }
-
     private lateinit var videoCapture: VideoCapture<Recorder>
     private var activeRecording: ActiveRecording? = null
     private lateinit var recordingState: VideoRecordEvent
@@ -60,20 +53,12 @@ class CameraVideoFragment : Fragment() {
     private val mainThreadExecutor by lazy { ContextCompat.getMainExecutor(requireContext()) }
     private var enumerationDeferred: Deferred<Unit>? = null
 
-    // main cameraX capture functions
-    /**
-     *   Always bind preview + video capture use case combinations in this sample
-     *   (VideoCapture can work on its own). The function should always execute on
-     *   the main thread.
-     */
     private suspend fun bindCaptureUsecase() {
         val cameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
-        val cameraSelector =
-                if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
+        val cameraSelector = if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
         val preview = Preview.Builder().setTargetAspectRatio(DEFAULT_ASPECT_RATIO)
-                .build().apply {
-                    setSurfaceProvider(fragmentCameraBinding.previewView.surfaceProvider)
-                }
+                .build()
+                .apply { setSurfaceProvider(fragmentCameraBinding.previewView.surfaceProvider) }
         // build a recorder, which can:
         //   - record video/audio to MediaStore(only shown here), File, ParcelFileDescriptor
         //   - be used create recording(s) (the recording performs recording)
@@ -109,8 +94,7 @@ class CameraVideoFragment : Fragment() {
      */
     @SuppressLint("MissingPermission")
     private fun startRecording() {
-        val name =
-                "CameraX-recording-" + SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis()) + ".mp4"
+        val name = "CameraX-recording-" + SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis()) + ".mp4"
         val contentValues = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, name)
         }
@@ -128,11 +112,7 @@ class CameraVideoFragment : Fragment() {
         Log.i(TAG, "Recording started")
     }
 
-    /**
-     * CaptureEvent listener.
-     */
     private val captureListener = Consumer<VideoRecordEvent> { event ->
-        // cache the recording state
         if (event !is VideoRecordEvent.Status)
             recordingState = event
 
@@ -143,9 +123,6 @@ class CameraVideoFragment : Fragment() {
         }
     }
 
-    /**
-     * Query and cache this platform's camera capabilities, run only once.
-     */
     init {
         enumerationDeferred = lifecycleScope.async {
             whenCreated {
@@ -170,13 +147,8 @@ class CameraVideoFragment : Fragment() {
         }
     }
 
-    /**
-     * One time initialize for CameraFragment, starts when view is created.
-     */
     private fun initCameraFragment() {
-        initializeUI()  // UI controls except the QualitySelector are initialized
-        // but disabled; need to wait for quality enumeration to
-        // complete then resume UI initialization
+        initializeUI()
         viewLifecycleOwner.lifecycleScope.launch {
             if (enumerationDeferred != null) {
                 enumerationDeferred!!.await()
@@ -186,11 +158,6 @@ class CameraVideoFragment : Fragment() {
         }
     }
 
-    /**
-     * Initialize UI. Preview and Capture actions are configured in this function.
-     * Note that preview and capture are both initialized either by UI or CameraX callbacks
-     * (except the very 1st time upon entering to this fragment in onCreateView()
-     */
     @SuppressLint("ClickableViewAccessibility", "MissingPermission")
     private fun initializeUI() {
         fragmentCameraBinding.cameraButton.apply {
@@ -214,31 +181,13 @@ class CameraVideoFragment : Fragment() {
                 if (!this@CameraVideoFragment::recordingState.isInitialized || recordingState is VideoRecordEvent.Finalize) {
                     enableUI(false)
                     startRecording()
-                } else {
-                    Log.i(TAG, "recordingState: $recordingState")
-                    when (recordingState) {
-                        is VideoRecordEvent.Start -> {
-                            activeRecording?.pause()
-                        }
-                        is VideoRecordEvent.Pause -> {
-                            activeRecording?.resume()
-                        }
-                        is VideoRecordEvent.Resume -> {
-                            activeRecording?.pause()
-                        }
-                        else -> {
-                            Log.e(TAG, "Unknown State ($recordingState) when Capture Button is pressed ")
-                        }
-                    }
                 }
             }
 
             override fun onNoMinRecord(currentTime: Int) = Unit
 
             override fun onRecordFinishedListener() {
-                if (activeRecording == null || recordingState is VideoRecordEvent.Finalize) {
-                    return
-                }
+                if (activeRecording == null || recordingState is VideoRecordEvent.Finalize) return
                 val recording = activeRecording
                 if (recording != null) {
                     recording.stop()
@@ -313,11 +262,6 @@ class CameraVideoFragment : Fragment() {
         }
     }
 
-    /**
-     * initialize UI for recording:
-     *  - at recording: hide audio, qualitySelection,change camera UI; enable stop button
-     *  - otherwise: show all except the stop button
-     */
     private fun showUI(state: UiState, status: String = "idle") {
         Log.i(TAG, "showUI: UiState: $status")
         fragmentCameraBinding.let {
@@ -343,11 +287,6 @@ class CameraVideoFragment : Fragment() {
         }
     }
 
-    /**
-     * ResetUI (restart):
-     *    in case binding failed, let's give it another change for re-try. In future cases
-     *    we might fail and user get notified on the status
-     */
     private fun resetUIandState(reason: String) {
         enableUI(true)
         showUI(UiState.IDLE, reason)
@@ -357,26 +296,13 @@ class CameraVideoFragment : Fragment() {
         fragmentCameraBinding.audioSelection.isChecked = audioEnabled
     }
 
-    /**
-     * Display capture the video in MediaStore
-     *     event: VideoRecordEvent.Finalize holding MediaStore URI
-     */
     private fun showVideo(event: VideoRecordEvent) {
-
-        if (event !is VideoRecordEvent.Finalize) {
-            return
-        }
-
+        if (event !is VideoRecordEvent.Finalize) return
         lifecycleScope.launch {
-            navController.navigate(
-                    CameraVideoFragmentDirections.actionCameraFragmentToVideoViewer(
-                            event.outputResults.outputUri
-                    )
-            )
+            findNavController().navigate(CameraVideoFragmentDirections.actionCameraFragmentToVideoViewer(event.outputResults.outputUri))
         }
     }
 
-    // System function implementations
     override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
@@ -389,15 +315,12 @@ class CameraVideoFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        // Make sure that all permissions are still present, since the
-        // user could have removed them while the app was in paused state.
         if (!PermissionsFragment.hasPermissions(requireContext())) {
             Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
                     CameraVideoFragmentDirections.actionCameraToPermissions()
             )
         }
     }
-
 
     override fun onDestroyView() {
         _fragmentCameraBinding = null
@@ -411,10 +334,6 @@ class CameraVideoFragment : Fragment() {
     }
 }
 
-
-/**
- * A helper extended function to get the name(string) for the VideoRecordEvent.
- */
 fun VideoRecordEvent.getName(): String {
     return when (this) {
         is VideoRecordEvent.Status -> "Status"
