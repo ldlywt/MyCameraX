@@ -197,6 +197,13 @@ class CameraVideoFragment : Fragment() {
 
         })
 
+        fragmentCameraBinding.btnRecord.setOnClickListener(object : CircleProgressButtonView.OnClickListener {
+            override fun onClick() {
+                Toast.makeText(requireContext(), "点击了拍照", Toast.LENGTH_SHORT).show()
+            }
+
+        })
+
         fragmentCameraBinding.captureStatus.text = getString(R.string.Idle)
 
         fragmentCameraBinding.ivCamera.setOnClickListener {

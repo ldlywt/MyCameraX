@@ -41,7 +41,6 @@ import com.ldlywt.camera.databinding.FragmentCameraBinding
 import com.ldlywt.camera.fragments.PermissionsFragment
 import com.ldlywt.camera.utils.ANIMATION_FAST_MILLIS
 import com.ldlywt.camera.utils.ANIMATION_SLOW_MILLIS
-import com.ldlywt.camera.utils.simulateClick
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
@@ -81,10 +80,7 @@ class TakePhotoFragment : Fragment() {
     private val volumeDownReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.getIntExtra(KEY_EVENT_EXTRA, KeyEvent.KEYCODE_UNKNOWN)) {
-                // When the volume down button is pressed, simulate a shutter button click
-                KeyEvent.KEYCODE_VOLUME_DOWN -> {
-                    cameraUiContainerBinding?.cameraCaptureButton?.simulateClick()
-                }
+                KeyEvent.KEYCODE_VOLUME_DOWN -> takePicture()
             }
         }
     }
@@ -139,7 +135,6 @@ class TakePhotoFragment : Fragment() {
         // Run the operations in the view's thread
         cameraUiContainerBinding?.photoViewButton?.let { photoViewButton ->
             photoViewButton.post {
-                // Remove thumbnail padding
                 photoViewButton.setPadding(resources.getDimension(R.dimen.stroke_small).toInt())
                 Glide.with(photoViewButton)
                         .load(uri)
@@ -205,60 +200,39 @@ class TakePhotoFragment : Fragment() {
     private fun setUpCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
-
-            // CameraProvider
             cameraProvider = cameraProviderFuture.get()
-
-            // Select lensFacing depending on the available cameras
             lensFacing = when {
                 hasBackCamera() -> CameraSelector.LENS_FACING_BACK
                 hasFrontCamera() -> CameraSelector.LENS_FACING_FRONT
                 else -> throw IllegalStateException("Back and front camera are unavailable")
             }
-
-            // Enable or disable switching between cameras
             updateCameraSwitchButton()
-
-            // Build and bind the camera use cases
             bindCameraUseCases()
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
     /** Declare and bind preview, capture and analysis use cases */
     private fun bindCameraUseCases() {
-
-        // Get screen metrics used to setup camera for full screen resolution
         val metrics = windowManager.getCurrentWindowMetrics().bounds
         Log.d(TAG, "Screen metrics: ${metrics.width()} x ${metrics.height()}")
-
         val screenAspectRatio = aspectRatio(metrics.width(), metrics.height())
 //        val screenAspectRatio = AspectRatio.RATIO_16_9
         Log.d(TAG, "Preview aspect ratio: $screenAspectRatio")
-
         val rotation = fragmentCameraBinding.cameraPreview.display.rotation
-
-        // CameraProvider
         val cameraProvider = cameraProvider
                 ?: throw IllegalStateException("Camera initialization failed.")
 
         val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
 
         preview = Preview.Builder()
-                // We request aspect ratio but no resolution
                 .setTargetAspectRatio(screenAspectRatio)
-                // Set initial target rotation
                 .setTargetRotation(rotation)
                 .build()
 
-        // ImageCapture
         imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .setFlashMode(ImageCapture.FLASH_MODE_AUTO)
-                // We request aspect ratio but no resolution to match preview config, but letting
-                // CameraX optimize for whatever specific resolution best fits our use cases
                 .setTargetAspectRatio(screenAspectRatio)
-                // Set initial target rotation, we will have to call this again if rotation changes
-                // during the lifecycle of this use case
                 .setTargetRotation(rotation)
                 .build()
 
@@ -266,11 +240,7 @@ class TakePhotoFragment : Fragment() {
         cameraProvider.unbindAll()
 
         try {
-            // A variable number of use-cases can be passed here -
-            // camera provides access to CameraControl & CameraInfo
             camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
-
-            // Attach the viewfinder's surface provider to preview use case
             preview?.setSurfaceProvider(fragmentCameraBinding.cameraPreview.surfaceProvider)
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
@@ -305,77 +275,13 @@ class TakePhotoFragment : Fragment() {
         }
 
         cameraUiContainerBinding?.cameraCaptureButton?.setOnClickListener {
-
-            imageCapture?.let { imageCapture ->
-                val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
-                val metadata = Metadata().apply {
-                    isReversedHorizontal = lensFacing == CameraSelector.LENS_FACING_FRONT
-                }
-                val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile)
-                        .setMetadata(metadata)
-                        .build()
-
-                imageCapture.takePicture(
-                        outputOptions, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
-                    override fun onError(exc: ImageCaptureException) {
-                        Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
-                    }
-
-                    override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                        val savedUri: Uri = output.savedUri ?: Uri.fromFile(photoFile)
-                        Log.d(TAG, "Photo capture succeeded: $savedUri")
-
-                        // We can only change the foreground Drawable using API level 23+ API
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            // Update the gallery thumbnail with latest picture taken
-                            setGalleryThumbnail(savedUri)
-                        }
-
-                        // Implicit broadcasts will be ignored for devices running API level >= 24
-                        // so if you only target API level 24+ you can remove this statement
-                        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                            requireActivity().sendBroadcast(
-                                    Intent(android.hardware.Camera.ACTION_NEW_PICTURE, savedUri)
-                            )
-                        }
-
-                        // If the folder selected is an external media directory, this is
-                        // unnecessary but otherwise other apps will not be able to access our
-                        // images unless we scan them using [MediaScannerConnection]
-                        val mimeType =
-                                MimeTypeMap.getSingleton().getMimeTypeFromExtension(savedUri.toFile().extension)
-                        MediaScannerConnection.scanFile(
-                                context,
-                                arrayOf(savedUri.toFile().absolutePath),
-                                arrayOf(mimeType)
-                        ) { _, uri ->
-                            Log.d(TAG, "Image capture scanned into media store: $uri")
-                        }
-                    }
-                })
-
-                // We can only change the foreground Drawable using API level 23+ API
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-
-                    // Display flash animation to indicate that photo was captured
-                    fragmentCameraBinding.root.postDelayed({
-                        fragmentCameraBinding.root.foreground = ColorDrawable(Color.WHITE)
-                        fragmentCameraBinding.root.postDelayed(
-                                { fragmentCameraBinding.root.foreground = null }, ANIMATION_FAST_MILLIS)
-                    }, ANIMATION_SLOW_MILLIS)
-                }
-            }
+            takePicture()
         }
 
         cameraUiContainerBinding?.cameraSwitchButton?.let {
             it.isEnabled = false
             it.setOnClickListener {
-                lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
-                    CameraSelector.LENS_FACING_BACK
-                } else {
-                    CameraSelector.LENS_FACING_FRONT
-                }
-                bindCameraUseCases()
+                switchCamera()
             }
         }
 
@@ -387,25 +293,100 @@ class TakePhotoFragment : Fragment() {
         }
 
         cameraUiContainerBinding?.ivTorch?.setOnClickListener {
-            when (imageCapture?.flashMode) {
-                ImageCapture.FLASH_MODE_AUTO -> {
-                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_ON
-                    cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_on)
-                }
-                ImageCapture.FLASH_MODE_ON -> {
-                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_OFF
-                    cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_off)
-                }
-                ImageCapture.FLASH_MODE_OFF -> {
-                    imageCapture?.flashMode = ImageCapture.FLASH_MODE_AUTO
-                    cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_auto)
-                }
-                else -> Unit
-            }
+            changeFlashMode()
         }
         cameraUiContainerBinding?.ivCameraVideo?.setOnClickListener {
             Navigation.findNavController(requireActivity(), R.id.fragment_container)
                     .navigate(TakePhotoFragmentDirections.actionCameraFragmentToCameraVideoFragment())
+        }
+    }
+
+    private fun changeFlashMode() {
+        when (imageCapture?.flashMode) {
+            ImageCapture.FLASH_MODE_AUTO -> {
+                imageCapture?.flashMode = ImageCapture.FLASH_MODE_ON
+                cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_on)
+            }
+            ImageCapture.FLASH_MODE_ON -> {
+                imageCapture?.flashMode = ImageCapture.FLASH_MODE_OFF
+                cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_off)
+            }
+            ImageCapture.FLASH_MODE_OFF -> {
+                imageCapture?.flashMode = ImageCapture.FLASH_MODE_AUTO
+                cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_auto)
+            }
+            else -> Unit
+        }
+    }
+
+    private fun switchCamera() {
+        lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
+            CameraSelector.LENS_FACING_BACK
+        } else {
+            CameraSelector.LENS_FACING_FRONT
+        }
+        bindCameraUseCases()
+    }
+
+    private fun takePicture() {
+        imageCapture?.let { imageCapture ->
+            val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
+            val metadata = Metadata().apply {
+                isReversedHorizontal = lensFacing == CameraSelector.LENS_FACING_FRONT
+            }
+            val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile)
+                    .setMetadata(metadata)
+                    .build()
+
+            imageCapture.takePicture(
+                    outputOptions, cameraExecutor, object : ImageCapture.OnImageSavedCallback {
+                override fun onError(exc: ImageCaptureException) {
+                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                }
+
+                override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    val savedUri: Uri = output.savedUri ?: Uri.fromFile(photoFile)
+                    Log.d(TAG, "Photo capture succeeded: $savedUri")
+
+                    // We can only change the foreground Drawable using API level 23+ API
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        // Update the gallery thumbnail with latest picture taken
+                        setGalleryThumbnail(savedUri)
+                    }
+
+                    // Implicit broadcasts will be ignored for devices running API level >= 24
+                    // so if you only target API level 24+ you can remove this statement
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+                        requireActivity().sendBroadcast(
+                                Intent(android.hardware.Camera.ACTION_NEW_PICTURE, savedUri)
+                        )
+                    }
+
+                    // If the folder selected is an external media directory, this is
+                    // unnecessary but otherwise other apps will not be able to access our
+                    // images unless we scan them using [MediaScannerConnection]
+                    val mimeType =
+                            MimeTypeMap.getSingleton().getMimeTypeFromExtension(savedUri.toFile().extension)
+                    MediaScannerConnection.scanFile(
+                            context,
+                            arrayOf(savedUri.toFile().absolutePath),
+                            arrayOf(mimeType)
+                    ) { _, uri ->
+                        Log.d(TAG, "Image capture scanned into media store: $uri")
+                    }
+                }
+            })
+
+            // We can only change the foreground Drawable using API level 23+ API
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+                // Display flash animation to indicate that photo was captured
+                fragmentCameraBinding.root.postDelayed({
+                    fragmentCameraBinding.root.foreground = ColorDrawable(Color.WHITE)
+                    fragmentCameraBinding.root.postDelayed(
+                            { fragmentCameraBinding.root.foreground = null }, ANIMATION_FAST_MILLIS)
+                }, ANIMATION_SLOW_MILLIS)
+            }
         }
     }
 
