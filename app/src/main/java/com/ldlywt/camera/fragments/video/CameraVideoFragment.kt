@@ -54,6 +54,34 @@ class CameraVideoFragment : Fragment() {
     private val mainThreadExecutor by lazy { ContextCompat.getMainExecutor(requireContext()) }
     private var enumerationDeferred: Deferred<Unit>? = null
 
+    override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?,
+    ): View {
+        _fragmentCameraBinding = FragmentCameraVideoBinding.inflate(inflater, container, false)
+        return fragmentCameraBinding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initCameraFragment()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!PermissionsFragment.hasPermissions(requireContext())) {
+            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
+                    CameraVideoFragmentDirections.actionCameraToPermissions()
+            )
+        }
+    }
+
+    override fun onDestroyView() {
+        _fragmentCameraBinding = null
+        super.onDestroyView()
+    }
+
     private suspend fun bindCameraUseCases() {
         val cameraProvider: ProcessCameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
         val cameraSelector = if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
@@ -198,12 +226,7 @@ class CameraVideoFragment : Fragment() {
 
         })
 
-        fragmentCameraBinding.btnRecord.setOnClickListener(object : CircleProgressButtonView.OnClickListener {
-            override fun onClick() {
-                Toast.makeText(requireContext(), "点击了拍照", Toast.LENGTH_SHORT).show()
-            }
-
-        })
+        fragmentCameraBinding.btnRecord.setOnClickListener(CircleProgressButtonView.OnClickListener { Toast.makeText(requireContext(), "点击了拍照", Toast.LENGTH_SHORT).show() })
 
         fragmentCameraBinding.captureStatus.text = getString(R.string.Idle)
 
@@ -309,30 +332,6 @@ class CameraVideoFragment : Fragment() {
         lifecycleScope.launch {
             findNavController().navigate(CameraVideoFragmentDirections.actionCameraFragmentToVideoViewer(event.outputResults.outputUri))
         }
-    }
-
-    override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?,
-    ): View {
-        _fragmentCameraBinding = FragmentCameraVideoBinding.inflate(inflater, container, false)
-        initCameraFragment()
-        return fragmentCameraBinding.root
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (!PermissionsFragment.hasPermissions(requireContext())) {
-            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigate(
-                    CameraVideoFragmentDirections.actionCameraToPermissions()
-            )
-        }
-    }
-
-    override fun onDestroyView() {
-        _fragmentCameraBinding = null
-        super.onDestroyView()
     }
 
     companion object {

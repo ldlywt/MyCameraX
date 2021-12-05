@@ -58,11 +58,10 @@ class TakePhotoFragment : Fragment() {
     private lateinit var outputDirectory: File
     private lateinit var broadcastManager: LocalBroadcastManager
 
-    private var displayId: Int = -1
-    private var isBack = true
     private var imageCapture: ImageCapture? = null
     private var camera: Camera? = null
     private lateinit var windowManager: WindowManager
+    private var isBack = true
 
     /** Blocking camera operations are performed using this executor */
     private lateinit var cameraExecutor: ExecutorService
@@ -74,6 +73,22 @@ class TakePhotoFragment : Fragment() {
                 KeyEvent.KEYCODE_VOLUME_DOWN -> takePicture()
             }
         }
+    }
+
+    override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?,
+    ): View {
+        _fragmentCameraBinding = FragmentCameraBinding.inflate(inflater, container, false)
+        return fragmentCameraBinding.root
+    }
+
+
+    @SuppressLint("MissingPermission")
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        initCameraFragment(view)
     }
 
     override fun onResume() {
@@ -96,15 +111,6 @@ class TakePhotoFragment : Fragment() {
         broadcastManager.unregisterReceiver(volumeDownReceiver)
     }
 
-    override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?,
-    ): View {
-        _fragmentCameraBinding = FragmentCameraBinding.inflate(inflater, container, false)
-        return fragmentCameraBinding.root
-    }
-
     private fun setGalleryThumbnail(uri: Uri) {
         fragmentCameraBinding.photoViewButton.let { photoViewButton ->
             photoViewButton.post {
@@ -117,10 +123,7 @@ class TakePhotoFragment : Fragment() {
         }
     }
 
-    @SuppressLint("MissingPermission")
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
+    private fun initCameraFragment(view: View) {
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         broadcastManager = LocalBroadcastManager.getInstance(view.context)
@@ -137,11 +140,8 @@ class TakePhotoFragment : Fragment() {
         // Wait for the views to be properly laid out
         fragmentCameraBinding.cameraPreview.post {
 
-            // Keep track of the display in which this view is attached
-            displayId = fragmentCameraBinding.cameraPreview.display.displayId
-
             // Build UI controls
-            updateCameraUi()
+            initializeUI()
 
             // Set up the camera and its use cases
             lifecycleScope.launch {
@@ -202,7 +202,7 @@ class TakePhotoFragment : Fragment() {
         return AspectRatio.RATIO_16_9
     }
 
-    private fun updateCameraUi() {
+    private fun initializeUI() {
         lifecycleScope.launch(Dispatchers.IO) {
             outputDirectory.listFiles { file ->
                 EXTENSION_WHITELIST.contains(file.extension.uppercase(Locale.ROOT))
@@ -311,7 +311,6 @@ class TakePhotoFragment : Fragment() {
 
             // We can only change the foreground Drawable using API level 23+ API
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-
                 // Display flash animation to indicate that photo was captured
                 fragmentCameraBinding.root.postDelayed({
                     fragmentCameraBinding.root.foreground = ColorDrawable(Color.WHITE)
@@ -330,7 +329,6 @@ class TakePhotoFragment : Fragment() {
         private const val RATIO_4_3_VALUE = 4.0 / 3.0
         private const val RATIO_16_9_VALUE = 16.0 / 9.0
 
-        /** Helper function used to create a timestamped file */
         private fun createFile(baseFolder: File, format: String, extension: String) =
                 File(baseFolder, SimpleDateFormat(format, Locale.US)
                         .format(System.currentTimeMillis()) + extension)
