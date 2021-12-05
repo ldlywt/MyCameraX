@@ -34,6 +34,7 @@ class CameraVideoFragment : Fragment() {
 
     private var _fragmentCameraBinding: FragmentCameraVideoBinding? = null
     private val fragmentCameraBinding get() = _fragmentCameraBinding!!
+
     private lateinit var videoCapture: VideoCapture<Recorder>
     private var activeRecording: ActiveRecording? = null
     private lateinit var recordingState: VideoRecordEvent
@@ -53,10 +54,11 @@ class CameraVideoFragment : Fragment() {
     private val mainThreadExecutor by lazy { ContextCompat.getMainExecutor(requireContext()) }
     private var enumerationDeferred: Deferred<Unit>? = null
 
-    private suspend fun bindCaptureUsecase() {
-        val cameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
+    private suspend fun bindCameraUseCases() {
+        val cameraProvider: ProcessCameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
         val cameraSelector = if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
-        val preview = Preview.Builder().setTargetAspectRatio(DEFAULT_ASPECT_RATIO)
+        val preview = Preview.Builder()
+                .setTargetAspectRatio(DEFAULT_ASPECT_RATIO)
                 .build()
                 .apply { setSurfaceProvider(fragmentCameraBinding.previewView.surfaceProvider) }
         // build a recorder, which can:
@@ -73,8 +75,7 @@ class CameraVideoFragment : Fragment() {
                     viewLifecycleOwner,
                     cameraSelector,
                     videoCapture,
-                    preview
-            )
+                    preview)
         } catch (exc: Exception) {
             // we are on main thread, let's reset the controls on the UI.
             Log.e(TAG, "Use case binding failed", exc)
@@ -154,7 +155,7 @@ class CameraVideoFragment : Fragment() {
                 enumerationDeferred!!.await()
                 enumerationDeferred = null
             }
-            bindCaptureUsecase()
+            bindCameraUseCases()
         }
     }
 
@@ -165,7 +166,7 @@ class CameraVideoFragment : Fragment() {
                 isBack = !isBack
                 enableUI(false)
                 viewLifecycleOwner.lifecycleScope.launch {
-                    bindCaptureUsecase()
+                    bindCameraUseCases()
                 }
             }
             isEnabled = false

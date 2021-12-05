@@ -8,7 +8,6 @@ import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
-import android.hardware.display.DisplayManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -22,7 +21,7 @@ import android.webkit.MimeTypeMap
 import androidx.camera.core.*
 import androidx.camera.core.ImageCapture.Metadata
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.content.ContextCompat
+import androidx.concurrent.futures.await
 import androidx.core.net.toFile
 import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
@@ -36,7 +35,6 @@ import com.ldlywt.camera.KEY_EVENT_ACTION
 import com.ldlywt.camera.KEY_EVENT_EXTRA
 import com.ldlywt.camera.MainActivity
 import com.ldlywt.camera.R
-import com.ldlywt.camera.databinding.CameraUiContainerBinding
 import com.ldlywt.camera.databinding.FragmentCameraBinding
 import com.ldlywt.camera.fragments.PermissionsFragment
 import com.ldlywt.camera.utils.ANIMATION_FAST_MILLIS
@@ -55,23 +53,16 @@ import kotlin.math.min
 class TakePhotoFragment : Fragment() {
 
     private var _fragmentCameraBinding: FragmentCameraBinding? = null
-
     private val fragmentCameraBinding get() = _fragmentCameraBinding!!
-
-    private var cameraUiContainerBinding: CameraUiContainerBinding? = null
 
     private lateinit var outputDirectory: File
     private lateinit var broadcastManager: LocalBroadcastManager
 
     private var displayId: Int = -1
-    private var lensFacing: Int = CameraSelector.LENS_FACING_BACK
-    private var preview: Preview? = null
+    private var isBack = true
     private var imageCapture: ImageCapture? = null
     private var camera: Camera? = null
-    private var cameraProvider: ProcessCameraProvider? = null
     private lateinit var windowManager: WindowManager
-
-    private val displayManager by lazy { requireContext().getSystemService(Context.DISPLAY_SERVICE) as DisplayManager }
 
     /** Blocking camera operations are performed using this executor */
     private lateinit var cameraExecutor: ExecutorService
@@ -83,22 +74,6 @@ class TakePhotoFragment : Fragment() {
                 KeyEvent.KEYCODE_VOLUME_DOWN -> takePicture()
             }
         }
-    }
-
-    /**
-     * We need a display listener for orientation changes that do not trigger a configuration
-     * change, for example if we choose to override config change in manifest or for 180-degree
-     * orientation changes.
-     */
-    private val displayListener = object : DisplayManager.DisplayListener {
-        override fun onDisplayAdded(displayId: Int) = Unit
-        override fun onDisplayRemoved(displayId: Int) = Unit
-        override fun onDisplayChanged(displayId: Int) = view?.let { view ->
-            if (displayId == this@TakePhotoFragment.displayId) {
-                Log.d(TAG, "Rotation changed: ${view.display.rotation}")
-                imageCapture?.targetRotation = view.display.rotation
-            }
-        } ?: Unit
     }
 
     override fun onResume() {
@@ -119,7 +94,6 @@ class TakePhotoFragment : Fragment() {
 
         // Unregister the broadcast receivers and listeners
         broadcastManager.unregisterReceiver(volumeDownReceiver)
-        displayManager.unregisterDisplayListener(displayListener)
     }
 
     override fun onCreateView(
@@ -132,8 +106,7 @@ class TakePhotoFragment : Fragment() {
     }
 
     private fun setGalleryThumbnail(uri: Uri) {
-        // Run the operations in the view's thread
-        cameraUiContainerBinding?.photoViewButton?.let { photoViewButton ->
+        fragmentCameraBinding.photoViewButton.let { photoViewButton ->
             photoViewButton.post {
                 photoViewButton.setPadding(resources.getDimension(R.dimen.stroke_small).toInt())
                 Glide.with(photoViewButton)
@@ -155,9 +128,6 @@ class TakePhotoFragment : Fragment() {
         val filter = IntentFilter().apply { addAction(KEY_EVENT_ACTION) }
         broadcastManager.registerReceiver(volumeDownReceiver, filter)
 
-        // Every time the orientation of device changes, update rotation for use cases
-        displayManager.registerDisplayListener(displayListener, null)
-
         //Initialize WindowManager to retrieve display metrics
         windowManager = WindowManager(view.context)
 
@@ -174,57 +144,31 @@ class TakePhotoFragment : Fragment() {
             updateCameraUi()
 
             // Set up the camera and its use cases
-            setUpCamera()
+            lifecycleScope.launch {
+                bindCameraUseCases()
+            }
         }
     }
 
-    /**
-     * Inflate camera controls and update the UI manually upon config changes to avoid removing
-     * and re-adding the view finder from the view hierarchy; this provides a seamless rotation
-     * transition on devices that support it.
-     *
-     * NOTE: The flag is supported starting in Android 8 but there still is a small flash on the
-     * screen for devices that run Android 9 or below.
-     */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-
-        // Rebind the camera with the updated display metrics
-        bindCameraUseCases()
-
-        // Enable or disable switching between cameras
-        updateCameraSwitchButton()
-    }
-
-    /** Initialize CameraX, and prepare to bind the camera use cases  */
-    private fun setUpCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
-        cameraProviderFuture.addListener({
-            cameraProvider = cameraProviderFuture.get()
-            lensFacing = when {
-                hasBackCamera() -> CameraSelector.LENS_FACING_BACK
-                hasFrontCamera() -> CameraSelector.LENS_FACING_FRONT
-                else -> throw IllegalStateException("Back and front camera are unavailable")
-            }
-            updateCameraSwitchButton()
+        lifecycleScope.launch {
             bindCameraUseCases()
-        }, ContextCompat.getMainExecutor(requireContext()))
+        }
     }
 
     /** Declare and bind preview, capture and analysis use cases */
-    private fun bindCameraUseCases() {
+    private suspend fun bindCameraUseCases() {
+        val cameraProvider: ProcessCameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
+        val cameraSelector = if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
         val metrics = windowManager.getCurrentWindowMetrics().bounds
         Log.d(TAG, "Screen metrics: ${metrics.width()} x ${metrics.height()}")
         val screenAspectRatio = aspectRatio(metrics.width(), metrics.height())
 //        val screenAspectRatio = AspectRatio.RATIO_16_9
         Log.d(TAG, "Preview aspect ratio: $screenAspectRatio")
         val rotation = fragmentCameraBinding.cameraPreview.display.rotation
-        val cameraProvider = cameraProvider
-                ?: throw IllegalStateException("Camera initialization failed.")
 
-        val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
-
-        preview = Preview.Builder()
+        val preview = Preview.Builder()
                 .setTargetAspectRatio(screenAspectRatio)
                 .setTargetRotation(rotation)
                 .build()
@@ -236,12 +180,15 @@ class TakePhotoFragment : Fragment() {
                 .setTargetRotation(rotation)
                 .build()
 
-        // Must unbind the use-cases before rebinding them
-        cameraProvider.unbindAll()
-
         try {
-            camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
-            preview?.setSurfaceProvider(fragmentCameraBinding.cameraPreview.surfaceProvider)
+            // Must unbind the use-cases before rebinding them
+            cameraProvider.unbindAll()
+            camera = cameraProvider.bindToLifecycle(
+                    viewLifecycleOwner,
+                    cameraSelector,
+                    preview,
+                    imageCapture)
+            preview.setSurfaceProvider(fragmentCameraBinding.cameraPreview.surfaceProvider)
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
         }
@@ -256,16 +203,6 @@ class TakePhotoFragment : Fragment() {
     }
 
     private fun updateCameraUi() {
-        cameraUiContainerBinding?.root?.let {
-            fragmentCameraBinding.root.removeView(it)
-        }
-
-        cameraUiContainerBinding = CameraUiContainerBinding.inflate(
-                LayoutInflater.from(requireContext()),
-                fragmentCameraBinding.root,
-                true
-        )
-
         lifecycleScope.launch(Dispatchers.IO) {
             outputDirectory.listFiles { file ->
                 EXTENSION_WHITELIST.contains(file.extension.uppercase(Locale.ROOT))
@@ -274,28 +211,25 @@ class TakePhotoFragment : Fragment() {
             }
         }
 
-        cameraUiContainerBinding?.cameraCaptureButton?.setOnClickListener {
+        fragmentCameraBinding.cameraCaptureButton.setOnClickListener {
             takePicture()
         }
 
-        cameraUiContainerBinding?.cameraSwitchButton?.let {
-            it.isEnabled = false
-            it.setOnClickListener {
-                switchCamera()
-            }
+        fragmentCameraBinding.cameraSwitchButton.setOnClickListener {
+            switchCamera()
         }
 
-        cameraUiContainerBinding?.photoViewButton?.setOnClickListener {
+        fragmentCameraBinding.photoViewButton.setOnClickListener {
             if (true == outputDirectory.listFiles()?.isNotEmpty()) {
                 Navigation.findNavController(requireActivity(), R.id.fragment_container)
                         .navigate(TakePhotoFragmentDirections.actionCameraToGallery(outputDirectory.absolutePath))
             }
         }
 
-        cameraUiContainerBinding?.ivTorch?.setOnClickListener {
+        fragmentCameraBinding.ivTorch.setOnClickListener {
             changeFlashMode()
         }
-        cameraUiContainerBinding?.ivCameraVideo?.setOnClickListener {
+        fragmentCameraBinding.ivCameraVideo.setOnClickListener {
             Navigation.findNavController(requireActivity(), R.id.fragment_container)
                     .navigate(TakePhotoFragmentDirections.actionCameraFragmentToCameraVideoFragment())
         }
@@ -305,34 +239,32 @@ class TakePhotoFragment : Fragment() {
         when (imageCapture?.flashMode) {
             ImageCapture.FLASH_MODE_AUTO -> {
                 imageCapture?.flashMode = ImageCapture.FLASH_MODE_ON
-                cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_on)
+                fragmentCameraBinding.ivTorch.setImageResource(R.mipmap.icon_flash_always_on)
             }
             ImageCapture.FLASH_MODE_ON -> {
                 imageCapture?.flashMode = ImageCapture.FLASH_MODE_OFF
-                cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_always_off)
+                fragmentCameraBinding.ivTorch.setImageResource(R.mipmap.icon_flash_always_off)
             }
             ImageCapture.FLASH_MODE_OFF -> {
                 imageCapture?.flashMode = ImageCapture.FLASH_MODE_AUTO
-                cameraUiContainerBinding?.ivTorch?.setImageResource(R.mipmap.icon_flash_auto)
+                fragmentCameraBinding.ivTorch.setImageResource(R.mipmap.icon_flash_auto)
             }
             else -> Unit
         }
     }
 
     private fun switchCamera() {
-        lensFacing = if (CameraSelector.LENS_FACING_FRONT == lensFacing) {
-            CameraSelector.LENS_FACING_BACK
-        } else {
-            CameraSelector.LENS_FACING_FRONT
+        isBack = !isBack
+        lifecycleScope.launch {
+            bindCameraUseCases()
         }
-        bindCameraUseCases()
     }
 
     private fun takePicture() {
         imageCapture?.let { imageCapture ->
             val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
             val metadata = Metadata().apply {
-                isReversedHorizontal = lensFacing == CameraSelector.LENS_FACING_FRONT
+                isReversedHorizontal = isBack
             }
             val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile)
                     .setMetadata(metadata)
@@ -389,21 +321,6 @@ class TakePhotoFragment : Fragment() {
             }
         }
     }
-
-    private fun updateCameraSwitchButton() {
-        try {
-            cameraUiContainerBinding?.cameraSwitchButton?.isEnabled = hasBackCamera() && hasFrontCamera()
-        } catch (exception: CameraInfoUnavailableException) {
-            cameraUiContainerBinding?.cameraSwitchButton?.isEnabled = false
-        }
-    }
-
-    private fun hasBackCamera(): Boolean =
-            cameraProvider?.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) ?: false
-
-    private fun hasFrontCamera(): Boolean =
-            cameraProvider?.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) ?: false
-
 
     companion object {
 
