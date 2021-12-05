@@ -42,7 +42,6 @@ import com.ldlywt.camera.utils.ANIMATION_SLOW_MILLIS
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -262,7 +261,7 @@ class TakePhotoFragment : Fragment() {
 
     private fun takePicture() {
         imageCapture?.let { imageCapture ->
-            val photoFile = createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
+            val photoFile = MainActivity.createFile(outputDirectory, FILENAME, PHOTO_EXTENSION)
             val metadata = Metadata().apply {
                 isReversedHorizontal = isBack
             }
@@ -329,8 +328,5 @@ class TakePhotoFragment : Fragment() {
         private const val RATIO_4_3_VALUE = 4.0 / 3.0
         private const val RATIO_16_9_VALUE = 16.0 / 9.0
 
-        private fun createFile(baseFolder: File, format: String, extension: String) =
-                File(baseFolder, SimpleDateFormat(format, Locale.US)
-                        .format(System.currentTimeMillis()) + extension)
     }
 }

@@ -22,11 +22,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.whenCreated
 import androidx.navigation.Navigation
 import androidx.navigation.fragment.findNavController
+import com.ldlywt.camera.MainActivity
 import com.ldlywt.camera.R
 import com.ldlywt.camera.databinding.FragmentCameraVideoBinding
 import com.ldlywt.camera.fragments.PermissionsFragment
 import com.ldlywt.camera.widget.CircleProgressButtonView
 import kotlinx.coroutines.*
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -35,12 +37,12 @@ class CameraVideoFragment : Fragment() {
     private var _fragmentCameraBinding: FragmentCameraVideoBinding? = null
     private val fragmentCameraBinding get() = _fragmentCameraBinding!!
 
+    private lateinit var outputDirectory: File
     private lateinit var videoCapture: VideoCapture<Recorder>
     private var activeRecording: ActiveRecording? = null
     private lateinit var recordingState: VideoRecordEvent
     private var isBack = true
 
-    // Camera UI  states and inputs
     enum class UiState {
         IDLE,       // Not recording, all UI controls are active.
         RECORDING,  // Camera is recording, only display Pause/Resume & Stop button.
@@ -123,8 +125,8 @@ class CameraVideoFragment : Fragment() {
      */
     @SuppressLint("MissingPermission")
     private fun startRecording() {
-        val name = "CameraX-recording-" + SimpleDateFormat(FILENAME_FORMAT, Locale.US).format(System.currentTimeMillis()) + ".mp4"
-        val contentValues = ContentValues().apply {
+        val name = "CameraX-recording-" + SimpleDateFormat(FILENAME, Locale.US).format(System.currentTimeMillis()) + ".mp4"
+        val contentValues: ContentValues = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, name)
         }
         val mediaStoreOutput = MediaStoreOutputOptions.Builder(
@@ -140,6 +142,20 @@ class CameraVideoFragment : Fragment() {
 
         Log.i(TAG, "Recording started")
     }
+
+/*    @SuppressLint("MissingPermission")
+    private fun startRecording() {
+
+        val outFile = MainActivity.createFile(outputDirectory, FILENAME, VIDEO_EXTENSION)
+        Log.i("wutao--> ", "outFile: $outFile")
+        val outputOptions: FileOutputOptions = FileOutputOptions.Builder(outFile).build()
+        activeRecording = videoCapture.output.prepareRecording(requireActivity(), outputOptions)
+                .withEventListener(mainThreadExecutor, captureListener)
+                .apply { if (audioEnabled) withAudioEnabled() }
+                .start()
+
+        Log.i(TAG, "Recording started")
+    }*/
 
     private val captureListener = Consumer<VideoRecordEvent> { event ->
         if (event !is VideoRecordEvent.Status)
@@ -177,6 +193,7 @@ class CameraVideoFragment : Fragment() {
     }
 
     private fun initCameraFragment() {
+        outputDirectory = MainActivity.getOutputDirectory(requireContext())
         initializeUI()
         viewLifecycleOwner.lifecycleScope.launch {
             if (enumerationDeferred != null) {
@@ -337,7 +354,8 @@ class CameraVideoFragment : Fragment() {
     companion object {
         const val DEFAULT_ASPECT_RATIO = AspectRatio.RATIO_16_9
         val TAG: String = CameraVideoFragment::class.java.simpleName
-        private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss"
+        private const val FILENAME = "yyyy-MM-dd-HH-mm-ss"
+        private const val VIDEO_EXTENSION = ".mp4"
     }
 }
 
