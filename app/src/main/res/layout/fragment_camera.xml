@@ -1,75 +1,95 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/camera_ui_container"
+    android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <androidx.camera.view.PreviewView
-        android:id="@+id/camera_preview"
+        android:id="@+id/previewView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
     <ImageButton
-        android:id="@+id/iv_camera_video"
-        android:layout_width="40dp"
+        android:id="@+id/iv_camera"
+        android:layout_width="wrap_content"
         android:layout_height="40dp"
         android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
         android:background="@android:color/transparent"
-        android:src="@drawable/ic_video"
+        android:src="@drawable/ic_camera"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <CheckBox
+        android:id="@+id/audio_selection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginTop="20dp"
+        android:layout_marginEnd="80dp"
+        android:buttonTint="@android:color/white"
+        android:text="Audio"
+        android:textColor="@android:color/white" />
 
     <ImageButton
         android:id="@+id/iv_torch"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:layout_marginTop="20dp"
-        android:layout_marginEnd="20dp"
+        android:layout_gravity="end"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="160dp"
         android:background="@android:color/transparent"
         android:src="@mipmap/icon_flash_auto"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageButton
-        android:id="@+id/camera_switch_button"
+        android:id="@+id/btn_switch_camera"
         android:layout_width="40dp"
         android:layout_height="40dp"
+        android:layout_gravity="end"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:background="@android:color/transparent"
         android:contentDescription="@string/switch_camera_button_alt"
         android:padding="@dimen/spacing_small"
         android:scaleType="fitCenter"
-        app:layout_constraintBottom_toBottomOf="@id/iv_torch"
-        app:layout_constraintRight_toLeftOf="@id/iv_torch"
-        app:layout_constraintTop_toTopOf="@id/iv_torch"
         app:srcCompat="@drawable/ic_switch" />
 
-    <ImageButton
-        android:id="@+id/camera_capture_button"
-        android:layout_width="@dimen/round_button_large"
-        android:layout_height="@dimen/round_button_large"
-        android:layout_marginBottom="@dimen/shutter_button_margin"
-        android:background="@drawable/ic_shutter"
-        android:contentDescription="@string/capture_button_alt"
-        android:scaleType="fitCenter"
+    <com.ldlywt.camera.widget.CircleProgressButtonView
+        android:id="@+id/btn_record"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="80dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:maxTime="15"
+        app:progressWidth="8dp" />
 
     <ImageButton
-        android:id="@+id/photo_view_button"
+        android:id="@+id/btn_photo_view"
         android:layout_width="@dimen/round_button_medium"
         android:layout_height="@dimen/round_button_medium"
+        android:layout_gravity="end|bottom"
         android:layout_marginEnd="@dimen/margin_small"
         android:layout_marginBottom="@dimen/margin_xlarge"
         android:background="@drawable/ic_outer_circle"
         android:contentDescription="@string/gallery_button_alt"
         android:padding="@dimen/spacing_large"
         android:scaleType="fitCenter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
         app:srcCompat="@drawable/ic_photo" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <TextView
+        android:id="@+id/capture_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="20dp"
+        android:lines="2"
+        android:maxLines="2"
+        android:text="@string/Idle"
+        android:textColor="#ff0" />
+
+</FrameLayout>

@@ -20,9 +20,9 @@
 
     <fragment
         android:id="@+id/take_photo_fragment"
-        android:name="com.ldlywt.camera.fragments.photo.TakePhotoFragment"
+        android:name="com.ldlywt.camera.fragments.CameraFragment"
         android:label="CameraFragment"
-        tools:layout="@layout/camera_ui_container">
+        tools:layout="@layout/fragment_camera">
 
         <action
             android:id="@+id/action_camera_to_gallery"
@@ -33,27 +33,10 @@
             app:destination="@id/permissions_fragment"
             app:popUpTo="@id/take_photo_fragment"
             app:popUpToInclusive="true" />
-        <action
-            android:id="@+id/action_camera_fragment_to_camera_video_fragment"
-            app:destination="@id/camera_video_fragment" />
 
-    </fragment>
-
-    <fragment
-        android:id="@+id/camera_video_fragment"
-        android:name="com.ldlywt.camera.fragments.video.CameraVideoFragment"
-        android:label="CameraVideo"
-        tools:layout="@layout/fragment_camera_video">
-
-        <action
-            android:id="@+id/action_camera_to_permissions"
-            app:destination="@id/permissions_fragment"
-            app:popUpTo="@id/camera_video_fragment"
-            app:popUpToInclusive="true" />
         <action
             android:id="@+id/action_camera_fragment_to_video_viewer"
             app:destination="@id/video_viewer" />
-
     </fragment>
 
     <fragment
