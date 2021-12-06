@@ -79,13 +79,16 @@ class CameraVideoFragment : Fragment() {
     private suspend fun bindCameraUseCases() {
         val cameraProvider: ProcessCameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
         val cameraSelector = if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
+
         val preview = Preview.Builder()
                 .setTargetAspectRatio(DEFAULT_ASPECT_RATIO)
                 .build()
                 .apply { setSurfaceProvider(fragmentCameraBinding.previewView.surfaceProvider) }
+
         val recorder = Recorder.Builder()
                 .setQualitySelector(QualitySelector.of(QualitySelector.QUALITY_SD))
                 .build()
+
         videoCapture = VideoCapture.withOutput(recorder)
 
         try {
@@ -131,16 +134,17 @@ class CameraVideoFragment : Fragment() {
         }
     }
 
+    private fun switchCamera() {
+        isBack = !isBack
+        lifecycleScope.launch {
+            bindCameraUseCases()
+        }
+    }
+
     @SuppressLint("ClickableViewAccessibility", "MissingPermission")
     private fun initializeUI() {
-        fragmentCameraBinding.cameraButton.apply {
-            setOnClickListener {
-                isBack = !isBack
-                viewLifecycleOwner.lifecycleScope.launch {
-                    bindCameraUseCases()
-                }
-            }
-            isEnabled = false
+        fragmentCameraBinding.cameraButton.setOnClickListener {
+            switchCamera()
         }
 
         fragmentCameraBinding.audioSelection.isChecked = audioEnabled

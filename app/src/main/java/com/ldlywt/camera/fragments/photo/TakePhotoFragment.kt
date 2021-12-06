@@ -1,10 +1,7 @@
 package com.ldlywt.camera.fragments.photo
 
 import android.annotation.SuppressLint
-import android.content.BroadcastReceiver
-import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
@@ -13,7 +10,6 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,13 +22,9 @@ import androidx.core.net.toFile
 import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.Navigation
-import androidx.window.WindowManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
-import com.ldlywt.camera.KEY_EVENT_ACTION
-import com.ldlywt.camera.KEY_EVENT_EXTRA
 import com.ldlywt.camera.MainActivity
 import com.ldlywt.camera.R
 import com.ldlywt.camera.databinding.FragmentCameraBinding
@@ -45,9 +37,6 @@ import java.io.File
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.math.abs
-import kotlin.math.max
-import kotlin.math.min
 
 class TakePhotoFragment : Fragment() {
 
@@ -55,24 +44,13 @@ class TakePhotoFragment : Fragment() {
     private val fragmentCameraBinding get() = _fragmentCameraBinding!!
 
     private lateinit var outputDirectory: File
-    private lateinit var broadcastManager: LocalBroadcastManager
 
     private var imageCapture: ImageCapture? = null
     private var camera: Camera? = null
-    private lateinit var windowManager: WindowManager
     private var isBack = true
 
     /** Blocking camera operations are performed using this executor */
     private lateinit var cameraExecutor: ExecutorService
-
-    /** Volume down button receiver used to trigger shutter */
-    private val volumeDownReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            when (intent.getIntExtra(KEY_EVENT_EXTRA, KeyEvent.KEYCODE_UNKNOWN)) {
-                KeyEvent.KEYCODE_VOLUME_DOWN -> takePicture()
-            }
-        }
-    }
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -105,9 +83,6 @@ class TakePhotoFragment : Fragment() {
 
         // Shut down our background executor
         cameraExecutor.shutdown()
-
-        // Unregister the broadcast receivers and listeners
-        broadcastManager.unregisterReceiver(volumeDownReceiver)
     }
 
     private fun setGalleryThumbnail(uri: Uri) {
@@ -124,14 +99,6 @@ class TakePhotoFragment : Fragment() {
 
     private fun initCameraFragment(view: View) {
         cameraExecutor = Executors.newSingleThreadExecutor()
-
-        broadcastManager = LocalBroadcastManager.getInstance(view.context)
-
-        val filter = IntentFilter().apply { addAction(KEY_EVENT_ACTION) }
-        broadcastManager.registerReceiver(volumeDownReceiver, filter)
-
-        //Initialize WindowManager to retrieve display metrics
-        windowManager = WindowManager(view.context)
 
         // Determine the output directory
         outputDirectory = MainActivity.getOutputDirectory(requireContext())
@@ -160,27 +127,18 @@ class TakePhotoFragment : Fragment() {
     private suspend fun bindCameraUseCases() {
         val cameraProvider: ProcessCameraProvider = ProcessCameraProvider.getInstance(requireContext()).await()
         val cameraSelector = if (isBack) CameraSelector.DEFAULT_BACK_CAMERA else CameraSelector.DEFAULT_FRONT_CAMERA
-        val metrics = windowManager.getCurrentWindowMetrics().bounds
-        Log.d(TAG, "Screen metrics: ${metrics.width()} x ${metrics.height()}")
-        val screenAspectRatio = aspectRatio(metrics.width(), metrics.height())
-//        val screenAspectRatio = AspectRatio.RATIO_16_9
-        Log.d(TAG, "Preview aspect ratio: $screenAspectRatio")
-        val rotation = fragmentCameraBinding.cameraPreview.display.rotation
 
         val preview = Preview.Builder()
-                .setTargetAspectRatio(screenAspectRatio)
-                .setTargetRotation(rotation)
+                .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                 .build()
 
         imageCapture = ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .setFlashMode(ImageCapture.FLASH_MODE_AUTO)
-                .setTargetAspectRatio(screenAspectRatio)
-                .setTargetRotation(rotation)
+                .setTargetAspectRatio(AspectRatio.RATIO_16_9)
                 .build()
 
         try {
-            // Must unbind the use-cases before rebinding them
             cameraProvider.unbindAll()
             camera = cameraProvider.bindToLifecycle(
                     viewLifecycleOwner,
@@ -191,14 +149,6 @@ class TakePhotoFragment : Fragment() {
         } catch (exc: Exception) {
             Log.e(TAG, "Use case binding failed", exc)
         }
-    }
-
-    private fun aspectRatio(width: Int, height: Int): Int {
-        val previewRatio = max(width, height).toDouble() / min(width, height)
-        if (abs(previewRatio - RATIO_4_3_VALUE) <= abs(previewRatio - RATIO_16_9_VALUE)) {
-            return AspectRatio.RATIO_4_3
-        }
-        return AspectRatio.RATIO_16_9
     }
 
     private fun initializeUI() {
