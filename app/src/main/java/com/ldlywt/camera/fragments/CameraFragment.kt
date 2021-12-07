@@ -25,7 +25,6 @@ import androidx.core.util.Consumer
 import androidx.core.view.setPadding
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import androidx.navigation.Navigation
 import androidx.navigation.fragment.findNavController
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -61,7 +60,6 @@ class CameraFragment : Fragment() {
         IDLE,       // Not recording, all UI controls are active.
         RECORDING,  // Camera is recording, only display Pause/Resume & Stop button.
         FINALIZED,  // Recording just completes, disable all RECORDING UI controls.
-        RECOVERY    // For future use.
     }
 
     override fun onCreateView(
@@ -312,10 +310,6 @@ class CameraFragment : Fragment() {
             takePicture()
         })
 
-        fragmentCameraBinding.ivCamera.setOnClickListener {
-            Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
-        }
-
         fragmentCameraBinding.ivTorch.setOnClickListener {
             changeFlashMode()
         }
@@ -368,7 +362,6 @@ class CameraFragment : Fragment() {
                 UiState.RECORDING -> {
                     it.btnSwitchCamera.visibility = View.INVISIBLE
                     it.audioSelection.visibility = View.INVISIBLE
-                    it.ivCamera.visibility = View.INVISIBLE
                 }
                 UiState.FINALIZED -> {
                 }
@@ -384,7 +377,6 @@ class CameraFragment : Fragment() {
 
     private fun resetUIandState(reason: String) {
         showUI(UiState.IDLE, reason)
-
         audioEnabled = false
         fragmentCameraBinding.audioSelection.isChecked = audioEnabled
     }

@@ -89,7 +89,7 @@ public class CircleProgressButtonView extends View {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         mWidth = MeasureSpec.getSize(widthMeasureSpec);
         mHeight = MeasureSpec.getSize(heightMeasureSpec);
-        mInitBitRadius = mBigRadius = mWidth / 2 * 0.75f;
+        mInitBitRadius = mBigRadius = mWidth / 2f * 0.75f;
         mInitSmallRadius = mSmallRadius = mBigRadius * 0.75f;
     }
 
@@ -97,9 +97,9 @@ public class CircleProgressButtonView extends View {
     protected void onDraw(final Canvas canvas) {
         super.onDraw(canvas);
         //绘制外圆
-        canvas.drawCircle(mWidth / 2, mHeight / 2, mBigRadius, mBigCirclePaint);
+        canvas.drawCircle(mWidth / 2f, mHeight / 2f, mBigRadius, mBigCirclePaint);
         //绘制内圆
-        canvas.drawCircle(mWidth / 2, mHeight / 2, mSmallRadius, mSmallCirclePaint);
+        canvas.drawCircle(mWidth / 2f, mHeight / 2f, mSmallRadius, mSmallCirclePaint);
         //录制的过程中绘制进度条
         if (isRecording) drawProgress(canvas);
     }
@@ -108,7 +108,10 @@ public class CircleProgressButtonView extends View {
         mProgressCirclePaint.setStrokeWidth(mProgressW);
         mProgressCirclePaint.setStyle(Paint.Style.STROKE);
         //用于定义的圆弧的形状和大小的界限
-        RectF oval = new RectF(mWidth / 2 - (mBigRadius - mProgressW / 2), mHeight / 2 - (mBigRadius - mProgressW / 2), mWidth / 2 + (mBigRadius - mProgressW / 2), mHeight / 2 + (mBigRadius - mProgressW / 2));
+        RectF oval = new RectF(mWidth / 2f - (mBigRadius - mProgressW / 2),
+                mHeight / 2f - (mBigRadius - mProgressW / 2),
+                mWidth / 2f + (mBigRadius - mProgressW / 2),
+                mHeight / 2f + (mBigRadius - mProgressW / 2));
         //根据进度画圆弧
         canvas.drawArc(oval, -90, mCurrentProgress, false, mProgressCirclePaint);
     }

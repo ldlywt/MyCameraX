@@ -35,9 +35,12 @@ class GalleryFragment internal constructor() : Fragment() {
 
     private lateinit var mediaList: MutableList<File>
 
-    inner class MediaPagerAdapter(fm: FragmentManager) : FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
+    inner class MediaPagerAdapter(fm: FragmentManager) :
+        FragmentStatePagerAdapter(fm, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT) {
         override fun getCount(): Int = mediaList.size
-        override fun getItem(position: Int): Fragment = PhotoViewerFragment.create(mediaList[position])
+        override fun getItem(position: Int): Fragment =
+            PhotoViewerFragment.create(mediaList[position])
+
         override fun getItemPosition(obj: Any): Int = POSITION_NONE
     }
 
@@ -54,9 +57,9 @@ class GalleryFragment internal constructor() : Fragment() {
     }
 
     override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View {
         _fragmentGalleryBinding = FragmentGalleryBinding.inflate(inflater, container, false)
         return fragmentGalleryBinding.root
@@ -85,44 +88,53 @@ class GalleryFragment internal constructor() : Fragment() {
 
         fragmentGalleryBinding.shareButton.setOnClickListener {
 
-            mediaList.getOrNull(fragmentGalleryBinding.photoViewPager.currentItem)?.let { mediaFile ->
+            mediaList.getOrNull(fragmentGalleryBinding.photoViewPager.currentItem)
+                ?.let { mediaFile ->
 
-                val intent = Intent().apply {
-                    val mediaType = MimeTypeMap.getSingleton()
+                    val intent = Intent().apply {
+                        val mediaType = MimeTypeMap.getSingleton()
                             .getMimeTypeFromExtension(mediaFile.extension)
-                    val uri = FileProvider.getUriForFile(
-                            view.context, BuildConfig.APPLICATION_ID + ".provider", mediaFile)
-                    putExtra(Intent.EXTRA_STREAM, uri)
-                    type = mediaType
-                    action = Intent.ACTION_SEND
-                    flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        val uri = FileProvider.getUriForFile(
+                            view.context, BuildConfig.APPLICATION_ID + ".provider", mediaFile
+                        )
+                        putExtra(Intent.EXTRA_STREAM, uri)
+                        type = mediaType
+                        action = Intent.ACTION_SEND
+                        flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    }
+                    startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
                 }
-                startActivity(Intent.createChooser(intent, getString(R.string.share_hint)))
-            }
         }
 
         fragmentGalleryBinding.deleteButton.setOnClickListener {
 
-            mediaList.getOrNull(fragmentGalleryBinding.photoViewPager.currentItem)?.let { mediaFile ->
+            mediaList.getOrNull(fragmentGalleryBinding.photoViewPager.currentItem)
+                ?.let { mediaFile ->
 
-                AlertDialog.Builder(view.context, android.R.style.Theme_Material_Dialog)
+                    AlertDialog.Builder(view.context, android.R.style.Theme_Material_Dialog)
                         .setTitle(getString(R.string.delete_title))
                         .setMessage(getString(R.string.delete_dialog))
                         .setIcon(android.R.drawable.ic_dialog_alert)
                         .setPositiveButton(android.R.string.yes) { _, _ ->
                             mediaFile.delete()
                             MediaScannerConnection.scanFile(
-                                    view.context, arrayOf(mediaFile.absolutePath), null, null)
+                                view.context,
+                                arrayOf(mediaFile.absolutePath),
+                                null,
+                                null
+                            )
                             mediaList.removeAt(fragmentGalleryBinding.photoViewPager.currentItem)
                             fragmentGalleryBinding.photoViewPager.adapter?.notifyDataSetChanged()
                             if (mediaList.isEmpty()) {
-                                Navigation.findNavController(requireActivity(), R.id.fragment_container).navigateUp()
+                                Navigation.findNavController(
+                                    requireActivity(),
+                                    R.id.fragment_container
+                                ).navigateUp()
                             }
                         }
-
                         .setNegativeButton(android.R.string.no, null)
                         .create().showImmersive()
-            }
+                }
         }
     }
 
