@@ -17,6 +17,9 @@ import android.view.View;
 
 import com.ldlywt.camera.R;
 
+/**
+ * 来自网上，忘记具体来源了
+ */
 public class CircleProgressButtonView extends View {
     private static final int WHAT_LONG_CLICK = 1;
     private Paint mBigCirclePaint;
