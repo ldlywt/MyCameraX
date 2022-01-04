@@ -50,9 +50,9 @@ class CameraFragment : Fragment() {
     private lateinit var videoCapture: VideoCapture<Recorder>
     private var activeRecording: ActiveRecording? = null
     private lateinit var recordingState: VideoRecordEvent
-    private var isBack = true
     private var audioEnabled = false
     private val mainThreadExecutor by lazy { ContextCompat.getMainExecutor(requireContext()) }
+    private var isBack = true
     private var imageCapture: ImageCapture? = null
     private lateinit var cameraExecutor: ExecutorService
 
